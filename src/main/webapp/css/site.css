@@ -1,0 +1,17 @@
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 100vh;
+}
+.spacer {
+    flex: 1;
+}
+.site-logo {
+    font-size: xx-large;
+    margin: 0 20px;
+}
+.nav-addon {
+    font-size: larger;
+    margin-right: 20px;
+}

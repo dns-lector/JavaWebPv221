@@ -17,7 +17,10 @@
     <header>
         <nav>
             <div class="nav-wrapper light-blue">
-                <a href="#" class="site-logo left">PV-221</a>
+                <a href="#" class="site-logo left">
+                    <img src="<%=contextPath%>/img/Java_Logo.png" alt="Logo" />
+                    PV-221
+                </a>
                 <ul id="nav-mobile" class="left">
                     <li><a href="#">Sass</a></li>
                     <li><a href="#">Components</a></li>

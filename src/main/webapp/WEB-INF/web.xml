@@ -5,17 +5,17 @@
 <web-app>
   <display-name>PV-221 Web Application</display-name>
 
-  <!-- region Реєстрація сервлету homeServlet -->
-  <servlet>
-    <servlet-name>homeServlet</servlet-name>
-    <servlet-class>itstep.learning.servlets.HomeServlet</servlet-class>
-  </servlet>
-  <!-- маршрутизація, як продовження реєстрації -->
-  <servlet-mapping>
-    <servlet-name>homeServlet</servlet-name>
-    <!-- Порожній паттерн = домашня сторінка (без внутр. адреси) -->
-    <url-pattern></url-pattern>
-  </servlet-mapping>
-  <!-- endregion Кінець реєстрації сервлету homeServlet -->
+  <filter>
+    <filter-name>guiceFilter</filter-name>
+    <filter-class>com.google.inject.servlet.GuiceFilter</filter-class>
+  </filter>
+  <filter-mapping>
+    <filter-name>guiceFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
+
+  <listener>
+    <listener-class>itstep.learning.ioc.AppContextListener</listener-class>
+  </listener>
 
 </web-app>

@@ -1,6 +1,9 @@
 package itstep.learning.servlets;
 
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import itstep.learning.services.formparse.FormParseResult;
+import itstep.learning.services.formparse.FormParseService;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -10,6 +13,13 @@ import java.io.IOException;
 
 @Singleton
 public class SignupServlet extends HttpServlet {
+    private final FormParseService formParseService;
+
+    @Inject
+    public SignupServlet( FormParseService formParseService ) {
+        this.formParseService = formParseService;
+    }
+
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         req.setAttribute( "page", "signup" );
@@ -18,7 +28,8 @@ public class SignupServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-
+        FormParseResult res = formParseService.parse( req );
+        System.out.println( res.getFields().size() + " " + res.getFiles().size() );
     }
 }
 /*

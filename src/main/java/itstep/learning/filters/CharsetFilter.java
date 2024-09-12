@@ -24,6 +24,8 @@ public class CharsetFilter implements Filter {
         у первинних фільтрах системи.
          */
         request.setCharacterEncoding( "UTF-8" );
+        request.setAttribute( "charset", "UTF-8" );
+
         response.setCharacterEncoding( "UTF-8" );
 
         System.out.println( "Filter works for " +

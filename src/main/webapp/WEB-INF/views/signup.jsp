@@ -84,12 +84,12 @@
     Content-Type: multipart/form-data; charset=utf-8
 
     1234--
-    Content-Type: text/plain
+    Content-Type: text/plain; charset=utf-8
     Content-Disposition: form-field; name=user-name
 
     Петрович
     1234--
-    Content-Type: text/plain
+    Content-Type: text/plain; charset=utf-8
     Content-Disposition: form-field; name=user-email
 
     user@i.ua

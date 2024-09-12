@@ -30,6 +30,7 @@ public class SignupServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         FormParseResult res = formParseService.parse( req );
         System.out.println( res.getFields().size() + " " + res.getFiles().size() );
+        System.out.println( res.getFields().toString() );
     }
 }
 /*

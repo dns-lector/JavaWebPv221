@@ -1,6 +1,11 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
+<%
+    String contextPath = request.getContextPath();
+%>
 <h1>Реєстрація користувача</h1>
 <form class="card-panel grey lighten-5"
+      id="signup-form"
+      action="<%=contextPath%>/signup"
       enctype="multipart/form-data"
       method="post">
     <div class="row">
@@ -10,9 +15,9 @@
             <label for="user-name">Ім'я</label>
         </div>
         <div class="input-field col s6">
-            <i class="material-icons prefix">phone</i>
-            <input id="user-phone" name="user-phone" type="tel" class="validate">
-            <label for="user-phone">Телефон</label>
+            <i class="material-icons prefix">cake</i>
+            <input id="user-birthdate" name="user-birthdate" type="date" class="validate">
+            <label for="user-birthdate">Дата народження</label>
         </div>
     </div>
 

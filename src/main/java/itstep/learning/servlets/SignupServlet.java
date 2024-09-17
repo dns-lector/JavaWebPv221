@@ -3,10 +3,14 @@ package itstep.learning.servlets;
 import com.google.gson.Gson;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import itstep.learning.dal.dao.UserDao;
+import itstep.learning.dal.dto.User;
 import itstep.learning.models.form.UserSignupFormModel;
 import itstep.learning.rest.RestResponse;
+import itstep.learning.services.files.FileService;
 import itstep.learning.services.formparse.FormParseResult;
 import itstep.learning.services.formparse.FormParseService;
+import org.apache.commons.fileupload.FileItem;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -19,10 +23,14 @@ import java.text.SimpleDateFormat;
 @Singleton
 public class SignupServlet extends HttpServlet {
     private final FormParseService formParseService;
+    private final FileService fileService;
+    private final UserDao userDao;
 
     @Inject
-    public SignupServlet( FormParseService formParseService ) {
+    public SignupServlet(FormParseService formParseService, FileService fileService, UserDao userDao) {
         this.formParseService = formParseService;
+        this.fileService = fileService;
+        this.userDao = userDao;
     }
 
     @Override
@@ -33,23 +41,50 @@ public class SignupServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        SimpleDateFormat dateParser =
-                new SimpleDateFormat("yyyy-MM-dd");
         RestResponse restResponse = new RestResponse();
         resp.setContentType( "application/json" );
 
+        UserSignupFormModel model;
+        try {
+            model = getModelFromRequest( req );
+        }
+        catch( Exception ex ) {
+            restResponse.setStatus( "Error" );
+            restResponse.setData( ex.getMessage() );
+            resp.getWriter().print(
+                    new Gson().toJson( restResponse )
+            );
+            return;
+        }
+
+        // передаємо на БД
+        User user = userDao.signup( model );
+        if( user == null ) {
+            restResponse.setStatus( "Error" );
+            restResponse.setData( "500 DB Error, details on server logs" );
+            resp.getWriter().print(
+                    new Gson().toJson( restResponse )
+            );
+            return;
+        }
+
+        restResponse.setStatus( "Ok" );
+        restResponse.setData( model );
+        resp.getWriter().print(
+                new Gson().toJson( restResponse )
+        );
+    }
+
+    private UserSignupFormModel getModelFromRequest( HttpServletRequest req ) throws Exception {
+        SimpleDateFormat dateParser =
+                new SimpleDateFormat("yyyy-MM-dd");
         FormParseResult res = formParseService.parse( req );
 
         UserSignupFormModel model = new UserSignupFormModel();
 
         model.setName( res.getFields().get("user-name") );
         if( model.getName() == null || model.getName().isEmpty() ) {
-            restResponse.setStatus( "Error" );
-            restResponse.setData( "Missing or empty required field: 'user-name'" );
-            resp.getWriter().print(
-                    new Gson().toJson( restResponse )
-            );
-            return;
+            throw new Exception( "Missing or empty required field: 'user-name'" );
         }
 
         model.setEmail( res.getFields().get("user-email") );
@@ -62,19 +97,20 @@ public class SignupServlet extends HttpServlet {
             );
         }
         catch( ParseException ex ) {
-            restResponse.setStatus( "Error" );
-            restResponse.setData( ex.getMessage() );
-            resp.getWriter().print(
-                    new Gson().toJson( restResponse )
-            );
-            return;
+            throw new Exception( ex.getMessage() );
         }
 
-        restResponse.setStatus( "Ok" );
-        restResponse.setData( model );
-        resp.getWriter().print(
-                new Gson().toJson( restResponse )
-        );
+        // зберігаємо файл-аватарку та одержуємо його збережене ім'я
+        String uploadedName = null;
+        FileItem avatar = res.getFiles().get( "user-avatar" );
+        if( avatar.getSize() > 0 ) {
+            uploadedName = fileService.upload( avatar );
+            model.setAvatar( uploadedName );
+        }
+        System.out.println( uploadedName );
+
+        model.setPassword( res.getFields().get( "user-password" ) );
+        return model;
     }
 }
 /*

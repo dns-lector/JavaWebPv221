@@ -36,18 +36,11 @@ public class DbModule extends AbstractModule {
                     String[] parts = line.split("=");
                     ini.put( parts[0].trim(), parts[1].trim() );
                 }
-                System.out.println(
-                        String.format( "jdbc:%s://%s:%s/%s",
-                                ini.get("dbms"),
-                                ini.get("host"),
-                                ini.get("port"),
-                                ini.get("schema")
-                        )
-                );
             }
             catch (IOException ex) {
                 System.err.println( ex.getMessage() );
             }
+
             try {
                 mysqlDriver = new com.mysql.cj.jdbc.Driver();
                 DriverManager.registerDriver( mysqlDriver );

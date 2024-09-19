@@ -27,6 +27,9 @@
                     <li><a href="#">JavaScript</a></li>
                 </ul>
                 <a class="nav-addon right" href="<%=contextPath%>/signup"><i class="material-icons">person_add</i></a>
+                <!-- Modal Trigger -->
+                <a class="nav-addon right modal-trigger" href="#modal1"><i class="material-icons">login</i></a>
+
             </div>
         </nav>
     </header>
@@ -59,8 +62,24 @@
         </div>
     </footer>
 
-<!-- Compiled and minified JavaScript -->
+
+    <!-- Modal Structure -->
+    <div id="modal1" class="modal">
+        <div class="modal-content">
+            <h4>Modal Header</h4>
+            <p>A bunch of text</p>
+        </div>
+        <div class="modal-footer">
+            <a href="#!" class="modal-close waves-effect waves-green btn-flat">Agree</a>
+        </div>
+    </div>
+
+
+    <!-- Compiled and minified JavaScript -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+<script>
+
+</script>
 <script src="<%=contextPath%>/js/site.js"></script>
 </body>
 </html>

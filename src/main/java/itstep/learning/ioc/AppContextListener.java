@@ -14,10 +14,12 @@ public class AppContextListener extends GuiceServletContextListener {
 
     @Override
     protected Injector getInjector() {
+        ServicesModule servicesModule = new ServicesModule( stringReader );
+        DbModule dbModule = new DbModule( stringReader );
         return Guice.createInjector(
-                new ServicesModule( stringReader ),
-                new WebModule(),
-                new DbModule( stringReader )
+                servicesModule,
+                dbModule,
+                new WebModule()
         );
     }
 

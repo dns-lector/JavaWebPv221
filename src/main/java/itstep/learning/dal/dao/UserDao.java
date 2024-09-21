@@ -9,6 +9,7 @@ import itstep.learning.services.hash.HashService;
 
 import java.sql.*;
 import java.util.Date;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -27,6 +28,41 @@ public class UserDao {
     }
 
     public User getUserById( UUID id ) {
+        String sql = String.format(
+                Locale.ROOT,
+                "SELECT * FROM users WHERE id = '%s'",
+                id.toString());
+        try( Statement statement = connection.createStatement() ) {
+            ResultSet resultSet = statement.executeQuery( sql );
+            if( resultSet.next() ) {
+                return new User( resultSet );
+            }
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+        }
+        return null;
+    }
+
+    public User authenticate( String login, String password ) {
+        String sql = "SELECT * FROM users JOIN users_security " +
+                " ON users.id = users_security.user_id " +
+                " WHERE users_security.login = ? ";
+
+        try( PreparedStatement prep = connection.prepareStatement( sql ) ) {
+            prep.setString( 1, login );
+            ResultSet res = prep.executeQuery();
+            if( res.next() ) {
+                String salt = res.getString("salt");
+                String dk = res.getString("dk");
+                if( hashService.digest( salt + password ).equals( dk ) ) {
+                    return new User( res );
+                }
+            }
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+        }
         return null;
     }
 

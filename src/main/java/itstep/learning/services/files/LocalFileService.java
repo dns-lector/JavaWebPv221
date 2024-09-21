@@ -6,6 +6,7 @@ import itstep.learning.services.stream.StringReader;
 import org.apache.commons.fileupload.FileItem;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -61,7 +62,11 @@ public class LocalFileService implements FileService {
     }
 
     @Override
-    public OutputStream download( String fileName ) {
+    public OutputStream download( String fileName ) throws IOException {
+        File file = new File( this.uploadPath, fileName );
+        if( file.isFile() && file.canRead() ) {
+            return Files.newOutputStream( file.toPath() );
+        }
         return null;
     }
 }

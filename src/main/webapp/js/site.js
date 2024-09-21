@@ -11,6 +11,14 @@ document.addEventListener("submit", e => {
             console.log(j);
         });
     }
+    else if(form.id === "modal-auth-form") {
+        e.preventDefault();
+        const queryString = new URLSearchParams(new FormData(form)).toString();
+        fetch(`${form.action}?${queryString}` ,{
+            method: 'PATCH'
+        }).then(r => r.json()).then( console.log );
+        // console.log(queryString);
+    }
 });
 
 document.addEventListener('DOMContentLoaded', function() {

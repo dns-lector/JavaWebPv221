@@ -3,6 +3,9 @@
     String pageName = (String) request.getAttribute( "page" ) ;
     // contextPath -- /Java221 - контекстний шлях нашого застосунку
     String contextPath = request.getContextPath();
+    boolean isAuthenticated = request.getAttribute("Claim.Sid") != null;
+    String avatar = (String) request.getAttribute("Claim.Avatar");
+    String userName = (String) request.getAttribute("Claim.Name");
 %>
 <html>
 <head>
@@ -26,9 +29,13 @@
                     <li><a href="#">Components</a></li>
                     <li><a href="#">JavaScript</a></li>
                 </ul>
-                <a class="nav-addon right" href="<%=contextPath%>/signup"><i class="material-icons">person_add</i></a>
-                <!-- Modal Trigger -->
-                <a class="nav-addon right modal-trigger" href="#modal1"><i class="material-icons">login</i></a>
+                <% if( isAuthenticated ) { %>
+                    <b title="<%=userName%>" >Avatar</b>
+                <% } else { %>
+                    <a class="nav-addon right" href="<%=contextPath%>/signup"><i class="material-icons">person_add</i></a>
+                    <!-- Modal Trigger -->
+                    <a class="nav-addon right modal-trigger" href="#auth-modal"><i class="material-icons">login</i></a>
+                <% } %>
 
             </div>
         </nav>
@@ -64,13 +71,27 @@
 
 
     <!-- Modal Structure -->
-    <div id="modal1" class="modal">
+    <div id="auth-modal" class="modal">
         <div class="modal-content">
-            <h4>Modal Header</h4>
-            <p>A bunch of text</p>
+            <h4>Автентифікація</h4>
+            <form id="modal-auth-form" action="<%=contextPath%>/signup">
+            <div class="row">
+                <div class="input-field col s6">
+                    <i class="material-icons prefix">alternate_email</i>
+                    <input id="auth-user-email" name="user-email" type="email" class="validate">
+                    <label for="auth-user-email">E-mail</label>
+                </div>
+                <div class="input-field col s6">
+                    <i class="material-icons prefix">lock</i>
+                    <input id="auth-user-password" name="user-password" type="password" class="validate">
+                    <label for="auth-user-password">Пароль</label>
+                </div>
+            </div>
+            </form>
         </div>
         <div class="modal-footer">
-            <a href="#!" class="modal-close waves-effect waves-green btn-flat">Agree</a>
+            <button class="modal-close waves-effect waves-green btn-flat">Закрити</button>
+            <button form="modal-auth-form" type="submit" class="waves-effect waves-green btn-flat">Вхід</button>
         </div>
     </div>
 

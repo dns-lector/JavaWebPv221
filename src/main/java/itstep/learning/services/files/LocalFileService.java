@@ -62,10 +62,10 @@ public class LocalFileService implements FileService {
     }
 
     @Override
-    public OutputStream download( String fileName ) throws IOException {
+    public InputStream download( String fileName ) throws IOException {
         File file = new File( this.uploadPath, fileName );
         if( file.isFile() && file.canRead() ) {
-            return Files.newOutputStream( file.toPath() );
+            return Files.newInputStream( file.toPath() );
         }
         return null;
     }

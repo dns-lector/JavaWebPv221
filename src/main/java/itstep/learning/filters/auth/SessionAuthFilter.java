@@ -7,6 +7,7 @@ import itstep.learning.dal.dto.User;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.UUID;
@@ -24,25 +25,40 @@ public class SessionAuthFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletRequest req = (HttpServletRequest) request;
         HttpSession session = req.getSession();
-        UUID userId = (UUID) session.getAttribute("userId");
-        if (userId != null) {
-            User user = userDao.getUserById( userId ) ;
-            if( user != null ) {
-                req.setAttribute("Claim.Sid", userId);
-                req.setAttribute("Claim.Name", user.getName());
-                req.setAttribute("Claim.Avatar", user.getAvatar());
-            }
+        String qs = req.getQueryString();
+        if( "logout".equals( qs ) ) {
+            session.removeAttribute( "userId" );
+            ((HttpServletResponse) response).sendRedirect( req.getContextPath() + "/" );
+            // немає chain.doFilter(request, response);
         }
-        chain.doFilter(request, response);
+        else {
+            UUID userId = (UUID) session.getAttribute("userId");
+            if (userId != null) {
+                User user = userDao.getUserById(userId);
+                if (user != null) {
+                    req.setAttribute("Claim.Sid", userId);
+                    req.setAttribute("Claim.Name", user.getName());
+                    req.setAttribute("Claim.Avatar", user.getAvatar());
+                }
+            }
+            chain.doFilter(request, response);
+        }
     }
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        Filter.super.init(filterConfig);
+
     }
 
     @Override
     public void destroy() {
-        Filter.super.destroy();
+
     }
 }
+/*
+Реалізувати вихід з авторизованого режиму:
+- перед виходом видавати погодження "Вийти з системи?"
+- аналізувати не лише рівність "logout", а вміст цього параметра,
+   але не просто contains, тому що це буде пошук у значеннях
+   (?search=logout) або у складових інших параметрів (geo-logout)
+ */

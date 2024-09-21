@@ -16,8 +16,14 @@ document.addEventListener("submit", e => {
         const queryString = new URLSearchParams(new FormData(form)).toString();
         fetch(`${form.action}?${queryString}` ,{
             method: 'PATCH'
-        }).then(r => r.json()).then( console.log );
-        // console.log(queryString);
+        }).then(r => r.json()).then( j => {
+            if( j.status === "Ok" ) {
+                window.location.reload();
+            }
+            else {
+                console.log( j );
+            }
+        } );
     }
 });
 

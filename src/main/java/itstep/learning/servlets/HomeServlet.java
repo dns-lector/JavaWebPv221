@@ -3,6 +3,7 @@ package itstep.learning.servlets;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import itstep.learning.dal.dao.TokenDao;
 import itstep.learning.dal.dao.UserDao;
 import itstep.learning.services.hash.HashService;
 
@@ -15,19 +16,20 @@ import java.sql.Connection;
 
 @Singleton
 public class HomeServlet extends HttpServlet {
-    private final HashService hashService;
     private final UserDao userDao;
+    private final TokenDao tokenDao;
 
     @Inject
-    public HomeServlet(@Named("digest") HashService hashService, UserDao userDao) {
-        this.hashService = hashService;
+    public HomeServlet(UserDao userDao, TokenDao tokenDao) {
         this.userDao = userDao;
+        this.tokenDao = tokenDao;
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         req.setAttribute( "hash",
-                userDao.installTables() ? "Tables OK" : "Tables Fail" );
+                userDao.installTables() && tokenDao.installTables()
+                        ? "Tables OK" : "Tables Fail" );
         // ~ return View()
         req.setAttribute( "page", "home" );
         req.getRequestDispatcher("WEB-INF/views/_layout.jsp").forward(req, resp);

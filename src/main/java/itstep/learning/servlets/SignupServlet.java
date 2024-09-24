@@ -168,4 +168,17 @@ public class SignupServlet extends HttpServlet {
  - за сесіями (серверними сесіями)
     при автентифікації стартує сесія
     при запиті перевіряється сесія
+
+Токен (від англ. - жетон, посвідчення) - дані, що ідентифікують їх
+власника
+Комунікація
+1. Одержання токену (автентифікація)
+ GET /auth  a)?login&password
+ b) Authorization: Basic login&password
+ -> token
+
+2. Використання токену (авторизація)
+ GET /spa
+ Authorization: Bearer token
+
  */

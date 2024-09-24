@@ -15,9 +15,11 @@ public class WebModule extends ServletModule {
 
         // ... та сервлетів
         serve( "/"         ).with( HomeServlet.class     );
+        serve( "/auth"     ).with( AuthServlet.class     );
         serve( "/file/*"   ).with( DownloadServlet.class );
         serve( "/servlets" ).with( ServletsServlet.class );
         serve( "/signup"   ).with( SignupServlet.class   );
+        serve( "/spa"      ).with( SpaServlet.class      );
 
         // !! не забути зняти з фільтрів/сервлетів анотації @Web...
         // !! та додати анотації @Singleton

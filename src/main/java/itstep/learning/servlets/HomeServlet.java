@@ -5,6 +5,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import itstep.learning.dal.dao.TokenDao;
 import itstep.learning.dal.dao.UserDao;
+import itstep.learning.dal.dao.shop.CategoryDao;
 import itstep.learning.services.hash.HashService;
 
 import javax.servlet.ServletException;
@@ -18,17 +19,21 @@ import java.sql.Connection;
 public class HomeServlet extends HttpServlet {
     private final UserDao userDao;
     private final TokenDao tokenDao;
+    private final CategoryDao categoryDao;
 
     @Inject
-    public HomeServlet(UserDao userDao, TokenDao tokenDao) {
+    public HomeServlet(UserDao userDao, TokenDao tokenDao, CategoryDao categoryDao) {
         this.userDao = userDao;
         this.tokenDao = tokenDao;
+        this.categoryDao = categoryDao;
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         req.setAttribute( "hash",
-                userDao.installTables() && tokenDao.installTables()
+                userDao.installTables() &&
+                tokenDao.installTables() &&
+                categoryDao.installTables()
                         ? "Tables OK" : "Tables Fail" );
         // ~ return View()
         req.setAttribute( "page", "home" );

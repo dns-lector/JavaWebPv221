@@ -56,7 +56,7 @@ public class TokenDao {
         token.setTokenId( UUID.randomUUID() );
         token.setUserId( user.getId() );
         token.setIat( new Date( System.currentTimeMillis() ) );
-        token.setExp( new Date( System.currentTimeMillis() + 1000 * 60 * 5 ) );
+        token.setExp( new Date( System.currentTimeMillis() + 1000 * 3600 * 3 ) );
         String sql = "INSERT INTO tokens (token_id, user_id, iat, exp) VALUES (?, ?, ?, ?)";
         try( PreparedStatement prep = connection.prepareStatement( sql )) {
             prep.setString( 1, token.getTokenId().toString() );

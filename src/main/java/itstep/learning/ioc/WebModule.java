@@ -4,6 +4,7 @@ import com.google.inject.servlet.ServletModule;
 import itstep.learning.filters.*;
 import itstep.learning.filters.auth.SessionAuthFilter;
 import itstep.learning.servlets.*;
+import itstep.learning.servlets.shop.CategoryServlet;
 
 public class WebModule extends ServletModule {
 
@@ -20,6 +21,8 @@ public class WebModule extends ServletModule {
         serve( "/servlets" ).with( ServletsServlet.class );
         serve( "/signup"   ).with( SignupServlet.class   );
         serve( "/spa"      ).with( SpaServlet.class      );
+
+        serve( "/shop/category" ).with( CategoryServlet.class );
 
         // !! не забути зняти з фільтрів/сервлетів анотації @Web...
         // !! та додати анотації @Singleton

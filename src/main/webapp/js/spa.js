@@ -1,6 +1,21 @@
-﻿
+﻿const initialState = {
+    page: "home"
+};
+
+function reducer(state, action) {
+    // console.log(action);
+    switch( action.type ) {
+        case 'navigate' :
+            return { ...state,
+                page: action.payload
+            };
+        default: throw Error('Unknown action.');
+    }
+}
 
 function Spa() {
+    const [state, dispatch] = React.useReducer( reducer, initialState );
+
     const [login, setLogin] = React.useState("");
     const [password, setPassword] = React.useState("");
     const [error, setError] = React.useState(false);
@@ -69,6 +84,12 @@ function Spa() {
         return () => clearInterval(interval);
     }, []);
 
+    const navigate = React.useCallback( (route) => {
+        // console.log(route);
+        // const action = { type: 'navigate', payload: route };
+        dispatch( { type: 'navigate', payload: route } );
+    });
+
     return <React.Fragment>
         <h1>SPA</h1>
         { !isAuth &&
@@ -83,8 +104,35 @@ function Spa() {
                 <button onClick={resourceClick} className="btn light-blue">Ресурс</button>
                 <button onClick={exitClick} className="btn indigo lighten-4">Вихід</button>
                 <p>{resource}</p>
+                <b onClick={() => navigate('home')}>Home</b>
+                <b onClick={() => navigate('shop')}>Shop</b>
+                { state.page === 'home' && <h2>Home</h2> }
+                { state.page === 'shop' && <Shop /> }
             </div>
         }
+    </React.Fragment>;
+}
+
+function Shop() {
+    const addCategory = React.useCallback( (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        fetch("shop/category", {
+            method: 'POST',
+            body: formData
+        }).then(r => r.json()).then(console.log);
+        // console.log(e);
+    });
+
+    return <React.Fragment>
+        <h2>Shop</h2>
+        <hr/>
+        <form onSubmit={addCategory} encType="multipart/form-data">
+            <input name="category-name" placeholder="Категорія"/><br/>
+            Картинка: <input type="file" name="category-img"/><br/>
+            <textarea name="category-description" placeholder="Опис"></textarea><br/>
+            <button type="submit">Додати</button>
+        </form>
     </React.Fragment>;
 }
 

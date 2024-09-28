@@ -20,12 +20,12 @@
     <header>
         <nav>
             <div class="nav-wrapper light-blue">
-                <a href="#" class="site-logo left">
+                <a href="<%=contextPath%>/" class="site-logo left">
                     <img src="<%=contextPath%>/img/Java_Logo.png" alt="Logo" />
                     PV-221
                 </a>
                 <ul id="nav-mobile" class="left">
-                    <li><a href="#">Sass</a></li>
+                    <li><a href="<%=contextPath%>/spa">SPA</a></li>
                     <li><a href="#">Components</a></li>
                     <li><a href="#">JavaScript</a></li>
                 </ul>

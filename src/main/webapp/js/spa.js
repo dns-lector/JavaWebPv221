@@ -1,4 +1,7 @@
 ﻿const initialState = {
+    auth: {
+        token: null
+    },
     page: "home",
     shop: {
         categories: [ ]
@@ -8,6 +11,13 @@
 function reducer(state, action) {
     // console.log(action);
     switch( action.type ) {
+        case 'auth' :
+            return { ...state,
+                auth: {
+                    ...state.auth,
+                    token: action.payload
+                }
+            };
         case 'navigate' :
             return { ...state,
                 page: action.payload
@@ -82,7 +92,10 @@ function Spa() {
                 exitClick();
             }
             else {
-                if(!isAuth) setAuth(true);
+                if(!isAuth) {
+                    setAuth(true);
+                    dispatch({ type: 'auth', payload: token });
+                }
             }
         }
         else {
@@ -128,19 +141,42 @@ function Spa() {
 
 function Category({id}) {
     const {state, dispatch} = React.useContext(StateContext);
+    const addProduct = React.useCallback( (e) => {
+        e.preventDefault();
+        console.log(state.auth.token);
+        const formData = new FormData(e.target);
+        fetch("shop/product", {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + state.auth.token.tokenId
+            },
+            body: formData
+        }).then(r => r.json()).then(console.log);
+    });
     return <div>
         Category: {id}<br/>
         <b onClick={() => dispatch({type: 'navigate', payload: 'home'})}>До Крамниці</b>
+        <br/>
+        {state.auth.token &&
+            <form onSubmit={addProduct} encType="multipart/form-data">
+                <hr/>
+                <input name="product-name" placeholder="Назва"/><br/>
+                <input name="product-price" type="number" step="0.01" placeholder="Ціна"/><br/>
+                Картинка: <input type="file" name="product-img"/><br/>
+                <textarea name="product-description" placeholder="Опис"></textarea><br/>
+                <input type="hidden" name="product-category-id" value={id} />
+                <button type="submit">Додати</button>
+            </form>}
     </div>;
 }
 
 function Home() {
     const {state, dispatch} = React.useContext(StateContext);
-    React.useEffect( () => {
-        if( state.shop.categories.length === 0 ) {
+    React.useEffect(() => {
+        if (state.shop.categories.length === 0) {
             fetch("shop/category")
-                .then( r => r.json() )
-                .then( j => dispatch( { type: 'setCategory', payload: j.data } ) );
+                .then(r => r.json())
+                .then(j => dispatch({type: 'setCategory', payload: j.data}));
         }
     }, [] );
     return <React.Fragment>

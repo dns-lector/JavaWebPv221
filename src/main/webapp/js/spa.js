@@ -1,5 +1,8 @@
 ﻿const initialState = {
-    page: "home"
+    page: "home",
+    shop: {
+        categories: [ ]
+    }
 };
 
 function reducer(state, action) {
@@ -9,9 +12,18 @@ function reducer(state, action) {
             return { ...state,
                 page: action.payload
             };
+        case 'setCategory' :
+            return { ...state,
+                shop: {
+                    ...state.shop,
+                    categories: action.payload
+                }
+            };
         default: throw Error('Unknown action.');
     }
 }
+
+const StateContext = React.createContext(null);
 
 function Spa() {
     const [state, dispatch] = React.useReducer( reducer, initialState );
@@ -90,7 +102,7 @@ function Spa() {
         dispatch( { type: 'navigate', payload: route } );
     });
 
-    return <React.Fragment>
+    return <StateContext.Provider value={ {state, dispatch} }>
         <h1>SPA</h1>
         { !isAuth &&
             <div>
@@ -106,10 +118,46 @@ function Spa() {
                 <p>{resource}</p>
                 <b onClick={() => navigate('home')}>Home</b>
                 <b onClick={() => navigate('shop')}>Shop</b>
-                { state.page === 'home' && <h2>Home</h2> }
+                { state.page === 'home' && <Home /> }
                 { state.page === 'shop' && <Shop /> }
+                { state.page.startsWith('category/') && <Category id={state.page.substring(9)} /> }
             </div>
         }
+    </StateContext.Provider>;
+}
+
+function Category({id}) {
+    const {state, dispatch} = React.useContext(StateContext);
+    return <div>
+        Category: {id}<br/>
+        <b onClick={() => dispatch({type: 'navigate', payload: 'home'})}>До Крамниці</b>
+    </div>;
+}
+
+function Home() {
+    const {state, dispatch} = React.useContext(StateContext);
+    React.useEffect( () => {
+        if( state.shop.categories.length === 0 ) {
+            fetch("shop/category")
+                .then( r => r.json() )
+                .then( j => dispatch( { type: 'setCategory', payload: j.data } ) );
+        }
+    }, [] );
+    return <React.Fragment>
+        <h2>Home</h2>
+        <b onClick={() => dispatch( { type: 'navigate', payload: 'shop' } )}>До Адмінки</b>
+        <div>
+            {state.shop.categories.map(c =>
+                <div key={c.id}
+                     className="shop-category"
+                     onClick={() => dispatch( { type: 'navigate', payload: 'category/' + c.id } )}>
+                        <b>{c.name}</b>
+                        <picture>
+                            <img src={"file/" + c.imageUrl} alt="grp" />
+                        </picture>
+                        <p>{c.description}</p>
+                </div>)}
+        </div>
     </React.Fragment>;
 }
 
@@ -135,6 +183,7 @@ function Shop() {
         </form>
     </React.Fragment>;
 }
+
 
 ReactDOM
     .createRoot(document.getElementById("spa-container"))

@@ -4,6 +4,33 @@ body {
     justify-content: space-between;
     min-height: 100vh;
 }
+.shop-category {
+    border: 1px solid lightgray;
+    cursor: pointer;
+    display: inline-block;
+    vertical-align: bottom;
+    margin: 10px;
+    overflow: hidden;
+    /*padding: 10px;*/
+    width: 20vw;
+    height: 20vw;
+}
+.shop-category b {
+    display: block;
+}
+.shop-category picture {
+    background-color: lightgray;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 12vw;
+    width: 20vw;
+}
+.shop-category img {
+    max-height: 100%;
+    max-width: 90%;
+}
+
 .spacer {
     flex: 1;
 }

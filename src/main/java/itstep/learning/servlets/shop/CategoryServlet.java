@@ -39,6 +39,13 @@ public class CategoryServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         FormParseResult formParseResult = formParseService.parse( req );
+
+        String slug = formParseResult.getFields().get( "category-slug" ) ;
+        if( slug != null && ! categoryDao.isSlugFree( slug ) ) {
+            restService.sendRestError( resp, "Slug '" + slug + "' is not free" );
+            return;
+        }
+
         String name = formParseResult.getFields().get( "category-name" );
         if ( name == null || name.isEmpty() ) {
             restService.sendRestError( resp, "Missing required field: 'category-name'" );
@@ -63,6 +70,7 @@ public class CategoryServlet extends HttpServlet {
         restService.sendRestResponse( resp,
                 categoryDao.add(
                         new ShopCategoryFormModel()
+                                .setSlug( slug )
                                 .setName( name )
                                 .setDescription( description )
                                 .setSavedFilename( uploadedName )
@@ -73,6 +81,12 @@ public class CategoryServlet extends HttpServlet {
 /*
 Д.З. Використати впроваджені до системи ролі користувачів
 Обмежити виведення форми додавання нових товарів
- для користувачів з роллю "Адміністратор"
+ для користувачів ---з роллю "Адміністратор"---
+   з правом "canCreate" = 1, зазначеним у ролі
 
+ [users]<>--[users_sec]          [users_roles]
+             user_id      /----- role_id
+             role_id ----/       role_name (Admin, Moderator, ...)
+             login/pass          canRead, canCreate, canUpdate, canDelete
+                                 canBan, canBlock
  */

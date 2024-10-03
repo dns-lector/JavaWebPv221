@@ -6,6 +6,7 @@ import com.google.inject.name.Named;
 import itstep.learning.dal.dao.TokenDao;
 import itstep.learning.dal.dao.UserDao;
 import itstep.learning.dal.dao.shop.CategoryDao;
+import itstep.learning.dal.dao.shop.ProductDao;
 import itstep.learning.services.hash.HashService;
 
 import javax.servlet.ServletException;
@@ -20,12 +21,14 @@ public class HomeServlet extends HttpServlet {
     private final UserDao userDao;
     private final TokenDao tokenDao;
     private final CategoryDao categoryDao;
+    private final ProductDao productDao;
 
     @Inject
-    public HomeServlet(UserDao userDao, TokenDao tokenDao, CategoryDao categoryDao) {
+    public HomeServlet(UserDao userDao, TokenDao tokenDao, CategoryDao categoryDao, ProductDao productDao) {
         this.userDao = userDao;
         this.tokenDao = tokenDao;
         this.categoryDao = categoryDao;
+        this.productDao = productDao;
     }
 
     @Override
@@ -33,6 +36,7 @@ public class HomeServlet extends HttpServlet {
         req.setAttribute( "hash",
                 userDao.installTables() &&
                 tokenDao.installTables() &&
+                productDao.installTables() &&
                 categoryDao.installTables()
                         ? "Tables OK" : "Tables Fail" );
         // ~ return View()

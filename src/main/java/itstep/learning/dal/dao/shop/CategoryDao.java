@@ -38,19 +38,36 @@ public class CategoryDao {
         return categories ;
     }
 
+    public boolean isSlugFree( String slug ) {
+        String sql = "SELECT COUNT(*) FROM categories c WHERE c.category_slug = ?";
+        try( PreparedStatement prep = connection.prepareStatement( sql ) ) {
+            prep.setString( 1, slug );
+            ResultSet resultSet = prep.executeQuery();
+            if( resultSet.next() ) {
+                return resultSet.getInt( 1 ) == 0;
+            }
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+        }
+        return false;
+    }
+
     public Category add( ShopCategoryFormModel formModel ) {
         Category category = new Category()
                 .setId( UUID.randomUUID() )
                 .setName( formModel.getName() )
+                .setSlug( formModel.getSlug() )
                 .setDescription( formModel.getDescription() )
                 .setImageUrl( formModel.getSavedFilename() );
-        String sql = "INSERT INTO categories (category_id, name, description, image_url) " +
-                " VALUES (?, ?, ?, ?)";
+        String sql = "INSERT INTO categories (category_id, name, description, image_url, category_slug) " +
+                " VALUES (?, ?, ?, ?, ?)";
         try ( PreparedStatement prep = connection.prepareStatement( sql ) ) {
             prep.setString( 1, category.getId().toString() );
             prep.setString( 2, category.getName() );
             prep.setString( 3, category.getDescription() );
             prep.setString( 4, category.getImageUrl() );
+            prep.setString( 5, category.getSlug() );
             prep.executeUpdate();
             return category;
         }
@@ -63,12 +80,13 @@ public class CategoryDao {
     public boolean installTables() {
         String sql =
                 "CREATE TABLE IF NOT EXISTS categories (" +
-                        "category_id  CHAR(36)      PRIMARY KEY  DEFAULT( UUID() )," +
-                        "name         VARCHAR(128)  NOT NULL," +
-                        "image_url    VARCHAR(512)  NOT NULL," +
-                        "description  TEXT              NULL," +
-                        "delete_dt    DATETIME          NULL" +
-                        ") ENGINE = InnoDB, DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci";
+                        "category_id    CHAR(36)      PRIMARY KEY  DEFAULT( UUID() )," +
+                        "name           VARCHAR(128)  NOT NULL," +
+                        "image_url      VARCHAR(512)  NOT NULL," +
+                        "description    TEXT              NULL," +
+                        "delete_dt      DATETIME          NULL," +
+                        "category_slug  VARCHAR(64)       NULL" +
+                ") ENGINE = InnoDB, DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci";
 
         try( Statement stmt = connection.createStatement() ) {
             stmt.executeUpdate( sql );

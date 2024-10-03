@@ -11,6 +11,7 @@ public class Category {
     private String name;
     private String description;
     private String imageUrl;
+    private String slug;
     private Date   deleteDt;
 
     public Category() {}
@@ -18,12 +19,22 @@ public class Category {
     public Category( ResultSet resultSet ) throws SQLException {
         this.setId( UUID.fromString( resultSet.getString( "category_id" ) ) )
                 .setName( resultSet.getString( "name" ) )
+                .setSlug( resultSet.getString( "category_slug" ) )
                 .setDescription( resultSet.getString( "description" ) )
                 .setImageUrl( resultSet.getString( "image_url" ) );
         Timestamp timestamp = resultSet.getTimestamp( "delete_dt" );
         if( timestamp != null ) {
             this.setDeleteDt( new Date( timestamp.getTime() ) ) ;
         }
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public Category setSlug(String slug) {
+        this.slug = slug;
+        return this;
     }
 
     public Date getDeleteDt() {

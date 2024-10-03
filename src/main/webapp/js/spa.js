@@ -19,6 +19,7 @@ function reducer(state, action) {
                 }
             };
         case 'navigate' :
+            window.location.hash = action.payload;
             return { ...state,
                 page: action.payload
             };
@@ -103,6 +104,10 @@ function Spa() {
         }
     });
     React.useEffect(() => {
+        const hash = window.location.hash;
+        if( hash.length > 1 ) {
+            dispatch( { type: 'navigate', payload: hash.substring(1) } );
+        }
         checkToken();
         const interval = setInterval(checkToken, 1000);
 
@@ -160,7 +165,8 @@ function Category({id}) {
         {state.auth.token &&
             <form onSubmit={addProduct} encType="multipart/form-data">
                 <hr/>
-                <input name="product-name" placeholder="Назва"/><br/>
+                <input name="product-name" placeholder="Назва"/>
+                <input name="product-slug" placeholder="Slug"/><br/>
                 <input name="product-price" type="number" step="0.01" placeholder="Ціна"/><br/>
                 Картинка: <input type="file" name="product-img"/><br/>
                 <textarea name="product-description" placeholder="Опис"></textarea><br/>
@@ -212,7 +218,8 @@ function Shop() {
         <h2>Shop</h2>
         <hr/>
         <form onSubmit={addCategory} encType="multipart/form-data">
-            <input name="category-name" placeholder="Категорія"/><br/>
+            <input name="category-name" placeholder="Категорія"/>
+            <input name="category-slug" placeholder="Slug"/><br/>
             Картинка: <input type="file" name="category-img"/><br/>
             <textarea name="category-description" placeholder="Опис"></textarea><br/>
             <button type="submit">Додати</button>

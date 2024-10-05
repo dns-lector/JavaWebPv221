@@ -19,6 +19,7 @@ function reducer(state, action) {
                 }
             };
         case 'navigate' :
+            // console.log("navigate " + action.payload);
             window.location.hash = action.payload;
             return { ...state,
                 page: action.payload
@@ -102,15 +103,29 @@ function Spa() {
             setAuth(false);
         }
     });
-    React.useEffect(() => {
+    const hashChanged = React.useCallback( () => {
         const hash = window.location.hash;
+        // console.log("hashChanged " + hash);
         if( hash.length > 1 ) {
             dispatch( { type: 'navigate', payload: hash.substring(1) } );
         }
+    } );
+    React.useEffect(() => {
+        hashChanged();
         checkToken();
+        window.addEventListener('hashchange', hashChanged);
         const interval = setInterval(checkToken, 1000);
 
-        return () => clearInterval(interval);
+        if (state.shop.categories.length === 0) {
+            fetch("shop/category")
+                .then(r => r.json())
+                .then(j => dispatch({type: 'setCategory', payload: j.data}));
+        }
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('hashchange', hashChanged);
+        }
     }, []);
 
     const navigate = React.useCallback( (route) => {
@@ -207,41 +222,65 @@ function Category({id}) {
 }
 
 function Product({id}) {
+    const [product, setProduct] = React.useState(null);
+    React.useEffect( () => {
+        fetch("shop/product?id=" + id)
+            .then(r => r.json())
+            .then(j => {
+                if( j.status === "Ok") {
+                    setProduct( j.data );
+                }
+                else {
+                    console.error( j.data );
+                    setProduct( null );
+                }
+            });
+    }, [id] );
     return <div>
-        <h1>Сторінка товару {id}</h1>
+        <h1>Сторінка товару</h1>
 
+        {product && <div>
+            <p>{product.name}</p>
+        </div>}
+
+        {!product && <div>
+            <p>Шукаємо...</p>
+        </div>}
+        <hr/>
+        <CategoriesList />
     </div>;
 }
 
 function Home() {
     const {state, dispatch} = React.useContext(StateContext);
     React.useEffect(() => {
-        if (state.shop.categories.length === 0) {
-            fetch("shop/category")
-                .then(r => r.json())
-                .then(j => dispatch({type: 'setCategory', payload: j.data}));
-        }
+
     }, [] );
     return <React.Fragment>
         <h2>Home</h2>
         <b onClick={() => dispatch( { type: 'navigate', payload: 'shop' } )}>До Адмінки</b>
-        <div>
-            {state.shop.categories.map(c =>
-                <div key={c.id}
-                     className="shop-category"
-                     onClick={() => dispatch( { type: 'navigate', payload: 'category/' + c.id } )}>
-                        <b>{c.name}</b>
-                        <picture>
-                            <img src={"file/" + c.imageUrl} alt="grp" />
-                        </picture>
-                        <p>{c.description}</p>
-                </div>)}
-        </div>
+        <CategoriesList />
     </React.Fragment>;
 }
 
+function CategoriesList() {
+    const {state, dispatch} = React.useContext(StateContext);
+    return <div>
+        {state.shop.categories.map(c =>
+            <div key={c.id}
+                 className="shop-category"
+                 onClick={() => dispatch({type: 'navigate', payload: 'category/' + c.id})}>
+                <b>{c.name}</b>
+                <picture>
+                    <img src={"file/" + c.imageUrl} alt="grp"/>
+                </picture>
+                <p>{c.description}</p>
+            </div>)}
+    </div>;
+}
+
 function Shop() {
-    const addCategory = React.useCallback( (e) => {
+    const addCategory = React.useCallback((e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
         fetch("shop/category", {
@@ -268,3 +307,10 @@ function Shop() {
 ReactDOM
     .createRoot(document.getElementById("spa-container"))
     .render(<Spa />);
+/*
+Д.З. Додати до компонента CategoriesList параметр
+який відповідатиме за відображення:
+<CategoriesList mode="table" /> - як на головній сторінці - "таблицею": великими блоками
+<CategoriesList mode="ribbon" /> - "стрічкою" - для додаткового відображення на
+ інших сторінках
+ */

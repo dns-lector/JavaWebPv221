@@ -35,19 +35,39 @@ public class ProductServlet  extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        String categoryId = req.getParameter( "categoryId" );
-        if( categoryId == null ) {
-            restService.sendRestError( resp, "Missing required parameter: 'categoryId'" );
+        String productId = req.getParameter( "id" );
+        if( productId != null ) {
+            getProductById( productId, req, resp );
             return;
         }
+
+        String categoryId = req.getParameter( "categoryId" );
+        if( categoryId != null ) {
+            getProductsByCategoryId(categoryId, req, resp);
+            return;
+        }
+
+        restService.sendRestError( resp, "Missing one of the required parameters: 'id' or 'categoryId'" );
+    }
+
+    private void getProductsByCategoryId( String categoryId, HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         UUID categoryUuid;
         try { categoryUuid = UUID.fromString( categoryId ); }
         catch( IllegalArgumentException ignored ) {
             restService.sendRestError( resp, "Invalid category id: " + categoryId );
             return;
         }
-
         restService.sendRestResponse( resp, productDao.allFromCategory( categoryUuid ) );
+    }
+
+    private void getProductById( String id, HttpServletRequest req, HttpServletResponse resp ) throws ServletException, IOException {
+        Product product = productDao.getProductByIdOrSlug( id );
+        if( product != null ) {
+            restService.sendRestResponse( resp, product );
+        }
+        else {
+            restService.sendRestError( resp, "Product not found: " + id );
+        }
     }
 
     @Override

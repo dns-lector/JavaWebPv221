@@ -38,6 +38,32 @@ public class ProductDao {
         }
         return products;
     }
+
+    public Product getProductByIdOrSlug( String id ) {
+        // id - або slug, або id. Перевіряємо шляхом перетворення до UUID
+        String sql = "SELECT * FROM products WHERE ";
+        try {
+            UUID.fromString( id );
+            // шукаємо як id
+            sql += "product_id = ?";
+        }
+        catch( IllegalArgumentException ignored ) {
+            // шукаємо як slug
+            sql += "product_slug = ?";
+        }
+        try( PreparedStatement prep = connection.prepareStatement( sql ) ) {
+            prep.setString( 1, id );
+            ResultSet rs = prep.executeQuery();
+            if( rs.next() ) {
+                return new Product( rs ) ;
+            }
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+        }
+        return null;
+    }
+
     public boolean isSlugFree( String slug ) {
         String sql = "SELECT COUNT(*) FROM products p WHERE p.product_slug = ?";
         try( PreparedStatement prep = connection.prepareStatement( sql ) ) {

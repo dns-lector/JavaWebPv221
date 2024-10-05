@@ -4,7 +4,7 @@ body {
     justify-content: space-between;
     min-height: 100vh;
 }
-.shop-category {
+.shop-category, .shop-product {
     border: 1px solid lightgray;
     cursor: pointer;
     display: inline-block;
@@ -15,10 +15,10 @@ body {
     width: 20vw;
     height: 20vw;
 }
-.shop-category b {
+.shop-category b, .shop-product b {
     display: block;
 }
-.shop-category picture {
+.shop-category picture, .shop-product picture {
     background-color: lightgray;
     display: flex;
     align-items: center;
@@ -26,7 +26,7 @@ body {
     height: 12vw;
     width: 20vw;
 }
-.shop-category img {
+.shop-category img, .shop-product img {
     max-height: 100%;
     max-width: 90%;
 }

@@ -34,6 +34,23 @@ public class ProductServlet  extends HttpServlet {
     }
 
     @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String categoryId = req.getParameter( "categoryId" );
+        if( categoryId == null ) {
+            restService.sendRestError( resp, "Missing required parameter: 'categoryId'" );
+            return;
+        }
+        UUID categoryUuid;
+        try { categoryUuid = UUID.fromString( categoryId ); }
+        catch( IllegalArgumentException ignored ) {
+            restService.sendRestError( resp, "Invalid category id: " + categoryId );
+            return;
+        }
+
+        restService.sendRestResponse( resp, productDao.allFromCategory( categoryUuid ) );
+    }
+
+    @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         if( req.getAttribute( "Claim.Sid" ) == null ) {
             restService.sendRestError( resp, "Unauthorized. Token empty or rejected" );
@@ -59,10 +76,14 @@ public class ProductServlet  extends HttpServlet {
         Product product = new Product();
         FormParseResult formParseResult = formParseService.parse( req );
 
-
-        product.setSlug( formParseResult.getFields().get( "product-slug" ) );
-        if( product.getSlug() != null && ! productDao.isSlugFree( product.getSlug() ) ) {
-            throw new Exception( "Slug '" + product.getSlug() + "' is not free" );
+        String slug = formParseResult.getFields().get( "product-slug" );
+        if( slug != null && ! slug.isEmpty() ) {
+            slug = slug.trim();
+            if( slug.isEmpty() ||
+                    ! productDao.isSlugFree( slug ) ) {
+                throw new Exception( "Slug '" + slug + "' is empty or not free" );
+            }
+            product.setSlug( slug );
         }
 
         try {

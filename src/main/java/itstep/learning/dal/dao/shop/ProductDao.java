@@ -5,6 +5,8 @@ import com.google.inject.Singleton;
 import itstep.learning.dal.dto.shop.Product;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,6 +22,22 @@ public class ProductDao {
         this.logger = logger;
     }
 
+    public List<Product> allFromCategory( UUID categoryId ) {
+        List<Product> products = new ArrayList<>();
+        String sql = "SELECT * FROM products WHERE category_id = ? AND delete_dt IS NULL";
+        try( PreparedStatement prep = connection.prepareStatement( sql ) ) {
+            prep.setString( 1 , categoryId.toString() );
+            ResultSet rs = prep.executeQuery();
+            while( rs.next() ) {
+                products.add( new Product( rs ) ) ;
+            }
+            rs.close();
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+        }
+        return products;
+    }
     public boolean isSlugFree( String slug ) {
         String sql = "SELECT COUNT(*) FROM products p WHERE p.product_slug = ?";
         try( PreparedStatement prep = connection.prepareStatement( sql ) ) {

@@ -38,7 +38,6 @@ const StateContext = React.createContext(null);
 
 function Spa() {
     const [state, dispatch] = React.useReducer( reducer, initialState );
-
     const [login, setLogin] = React.useState("");
     const [password, setPassword] = React.useState("");
     const [error, setError] = React.useState(false);
@@ -139,6 +138,7 @@ function Spa() {
                 { state.page === 'home' && <Home /> }
                 { state.page === 'shop' && <Shop /> }
                 { state.page.startsWith('category/') && <Category id={state.page.substring(9)} /> }
+                { state.page.startsWith('product/') && <Product id={state.page.substring(8)} /> }
             </div>
         }
     </StateContext.Provider>;
@@ -146,6 +146,17 @@ function Spa() {
 
 function Category({id}) {
     const {state, dispatch} = React.useContext(StateContext);
+    const [products, setProducts] = React.useState([]);
+    const loadProducts = React.useCallback( () => {
+        fetch("shop/product?categoryId=" + id)
+            .then(r => r.json())
+            .then(j => {
+                setProducts( j.data );
+            });
+    } );
+    React.useEffect( () => {
+        loadProducts();
+    }, [] );
     const addProduct = React.useCallback( (e) => {
         e.preventDefault();
         console.log(state.auth.token);
@@ -156,14 +167,33 @@ function Category({id}) {
                 'Authorization': 'Bearer ' + state.auth.token.tokenId
             },
             body: formData
-        }).then(r => r.json()).then(console.log);
+        }).then(r => r.json())
+            .then(j => {
+                if( j.status === "Ok" ) {
+                    loadProducts();
+                    document.getElementById("add-product-form").reset();
+                }
+                else {
+                    alert( j.data );
+                }
+            });
     });
     return <div>
         Category: {id}<br/>
         <b onClick={() => dispatch({type: 'navigate', payload: 'home'})}>До Крамниці</b>
         <br/>
+        {products.map(p => <div key={p.id}
+                                className="shop-product"
+                                onClick={() => dispatch({type: 'navigate', payload: 'product/' + (p.slug || p.id)})}>
+            <b>{p.name}</b>
+            <picture>
+                <img src={"file/" + p.imageUrl} alt="prod"/>
+            </picture>
+            <p><strong>{p.price}</strong> <small>{p.description}</small></p>
+        </div>)}
+        <br/>
         {state.auth.token &&
-            <form onSubmit={addProduct} encType="multipart/form-data">
+            <form id="add-product-form" onSubmit={addProduct} encType="multipart/form-data">
                 <hr/>
                 <input name="product-name" placeholder="Назва"/>
                 <input name="product-slug" placeholder="Slug"/><br/>
@@ -173,6 +203,13 @@ function Category({id}) {
                 <input type="hidden" name="product-category-id" value={id} />
                 <button type="submit">Додати</button>
             </form>}
+    </div>;
+}
+
+function Product({id}) {
+    return <div>
+        <h1>Сторінка товару {id}</h1>
+
     </div>;
 }
 

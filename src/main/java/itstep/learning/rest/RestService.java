@@ -9,15 +9,21 @@ import java.io.IOException;
 
 @Singleton
 public class RestService {
-    public void sendRestError(HttpServletResponse resp, String message) throws IOException {
+    public void sendRestError( HttpServletResponse resp, String message ) throws IOException {
+        sendRestError( resp, 400, message );
+    }
+    public void sendRestError( HttpServletResponse resp, int code, String message ) throws IOException {
         RestResponse restResponse = new RestResponse();
-        restResponse.setStatus( "Error" );
+        restResponse.setStatus( new RestResponseStatus( code ) );
         restResponse.setData( message );
         sendRest( resp, restResponse );
     }
     public void sendRestResponse(HttpServletResponse resp, Object data) throws IOException {
+        sendRestResponse( resp, 200, data );
+    }
+    public void sendRestResponse(HttpServletResponse resp, int code, Object data) throws IOException {
         RestResponse restResponse = new RestResponse();
-        restResponse.setStatus( "Ok" );
+        restResponse.setStatus( new RestResponseStatus( code ) );
         restResponse.setData( data );
         sendRest( resp, restResponse );
     }

@@ -8,6 +8,7 @@ import itstep.learning.dal.dao.UserDao;
 import itstep.learning.dal.dto.User;
 import itstep.learning.models.form.UserSignupFormModel;
 import itstep.learning.rest.RestResponse;
+import itstep.learning.rest.RestService;
 import itstep.learning.services.files.FileService;
 import itstep.learning.services.formparse.FormParseResult;
 import itstep.learning.services.formparse.FormParseService;
@@ -29,13 +30,15 @@ public class SignupServlet extends HttpServlet {
     private final FileService fileService;
     private final UserDao userDao;
     private final Logger logger;
+    private final RestService restService;
 
     @Inject
-    public SignupServlet(FormParseService formParseService, FileService fileService, UserDao userDao, Logger logger) {
+    public SignupServlet(FormParseService formParseService, FileService fileService, UserDao userDao, Logger logger, RestService restService) {
         this.formParseService = formParseService;
         this.fileService = fileService;
         this.userDao = userDao;
         this.logger = logger;
+        this.restService = restService;
     }
 
     @Override
@@ -56,68 +59,43 @@ public class SignupServlet extends HttpServlet {
         String userLogin = req.getParameter( "user-email" );
         String userPassword = req.getParameter( "user-password" );
         logger.info( "userLogin: " + userLogin + ", userPassword: " + userPassword );
-        RestResponse restResponse = new RestResponse();
-        resp.setContentType( "application/json" );
-        Gson gson = new GsonBuilder().serializeNulls().create();
 
         if( userLogin == null || userLogin.isEmpty() ||
                 userPassword == null || userPassword.isEmpty() ) {
-            restResponse.setStatus( "Error" );
-            restResponse.setData( "Missing or empty credentials" );
-            resp.getWriter().print( gson.toJson( restResponse ) );
+            restService.sendRestError( resp, 401, "Missing or empty credentials" );
             return;
         }
         User user = userDao.authenticate( userLogin, userPassword );
         if( user == null ) {
-            restResponse.setStatus( "Error" );
-            restResponse.setData( "Credentials rejected" );
-            resp.getWriter().print( gson.toJson( restResponse ) );
+            restService.sendRestError( resp, 401, "Credentials rejected" );
             return;
         }
         // утримання авторизації - сесії
         // зберігаємо у сесію відомості про користувача
         HttpSession session = req.getSession();
         session.setAttribute( "userId", user.getId() );
-        restResponse.setStatus( "Ok" );
-        restResponse.setData( user );
-        resp.getWriter().print( gson.toJson( restResponse ) );
+        restService.sendRestResponse( resp, user );
     }
 
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        RestResponse restResponse = new RestResponse();
-        resp.setContentType( "application/json" );
-
         UserSignupFormModel model;
         try {
             model = getModelFromRequest( req );
         }
         catch( Exception ex ) {
-            restResponse.setStatus( "Error" );
-            restResponse.setData( ex.getMessage() );
-            resp.getWriter().print(
-                    new Gson().toJson( restResponse )
-            );
+            restService.sendRestError( resp, 400, ex.getMessage() );
             return;
         }
 
         // передаємо на БД
         User user = userDao.signup( model );
         if( user == null ) {
-            restResponse.setStatus( "Error" );
-            restResponse.setData( "500 DB Error, details on server logs" );
-            resp.getWriter().print(
-                    new Gson().toJson( restResponse )
-            );
+            restService.sendRestError( resp, 500, "DB Error, details on server logs" );
             return;
         }
-
-        restResponse.setStatus( "Ok" );
-        restResponse.setData( model );
-        resp.getWriter().print(
-                new Gson().toJson( restResponse )
-        );
+        restService.sendRestResponse( resp, model );
     }
 
     private UserSignupFormModel getModelFromRequest( HttpServletRequest req ) throws Exception {

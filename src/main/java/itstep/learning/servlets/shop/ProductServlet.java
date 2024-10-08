@@ -4,6 +4,9 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import itstep.learning.dal.dao.shop.ProductDao;
 import itstep.learning.dal.dto.shop.Product;
+import itstep.learning.rest.RestMetaData;
+import itstep.learning.rest.RestResponse;
+import itstep.learning.rest.RestResponseStatus;
 import itstep.learning.rest.RestService;
 import itstep.learning.services.files.FileService;
 import itstep.learning.services.formparse.FormParseResult;
@@ -15,8 +18,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.UUID;
+import java.util.*;
 
 @Singleton
 public class ProductServlet  extends HttpServlet {
@@ -24,6 +26,7 @@ public class ProductServlet  extends HttpServlet {
     private final FormParseService formParseService;
     private final FileService fileService;
     private final ProductDao productDao;
+    private RestResponse restResponse;
 
     @Inject
     public ProductServlet(RestService restService, FormParseService formParseService, FileService fileService, ProductDao productDao) {
@@ -34,15 +37,36 @@ public class ProductServlet  extends HttpServlet {
     }
 
     @Override
+    protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        restResponse = new RestResponse();
+        restResponse.setMeta(
+                new RestMetaData()
+                        .setUri( "/shop/products" )
+                        .setMethod( req.getMethod() )
+                        .setLocale( "uk-UA" )
+                        .setServerTime( new Date() )
+                        .setName( "Shop Product API" )
+                        .setAcceptMethods(new String[]{ "GET", "POST"})
+        );
+        super.service(req, resp);
+    }
+
+    @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String productId = req.getParameter( "id" );
         if( productId != null ) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("id", productId);
+            this.restResponse.getMeta().setParams(params);
             getProductById( productId, req, resp );
             return;
         }
 
         String categoryId = req.getParameter( "categoryId" );
         if( categoryId != null ) {
+            Map<String, Object> params = new HashMap<>();
+            params.put("categoryId", categoryId);
+            this.restResponse.getMeta().setParams(params);
             getProductsByCategoryId(categoryId, req, resp);
             return;
         }
@@ -57,16 +81,24 @@ public class ProductServlet  extends HttpServlet {
             restService.sendRestError( resp, "Invalid category id: " + categoryId );
             return;
         }
-        restService.sendRestResponse( resp, productDao.allFromCategory( categoryUuid ) );
+        restService.sendRest( resp,
+                restResponse.setData( productDao.allFromCategory( categoryUuid ) ) );
     }
 
     private void getProductById( String id, HttpServletRequest req, HttpServletResponse resp ) throws ServletException, IOException {
         Product product = productDao.getProductByIdOrSlug( id );
         if( product != null ) {
-            restService.sendRestResponse( resp, product );
+            restService.sendRest( resp,
+                    restResponse
+                            .setStatus( new RestResponseStatus( 200 ) )
+                            .setData( product )
+            );
         }
         else {
-            restService.sendRestError( resp, "Product not found: " + id );
+            restService.sendRest( resp,
+                    restResponse
+                            .setStatus( new RestResponseStatus( 404 ) )
+                            .setData( "Product not found: " + id ) );
         }
     }
 
@@ -83,7 +115,8 @@ public class ProductServlet  extends HttpServlet {
                 restService.sendRestError( resp, "Server Error" );
             }
             else {
-                restService.sendRestResponse( resp, product );
+                restService.sendRest( resp,
+                        restResponse.setData( product ) );
             }
         }
         catch( Exception ex ) {

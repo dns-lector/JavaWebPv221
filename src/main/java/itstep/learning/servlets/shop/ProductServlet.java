@@ -90,14 +90,14 @@ public class ProductServlet  extends HttpServlet {
         if( product != null ) {
             restService.sendRest( resp,
                     restResponse
-                            .setStatus( new RestResponseStatus( 200 ) )
+                            .setStatus( 200 )
                             .setData( product )
             );
         }
         else {
             restService.sendRest( resp,
                     restResponse
-                            .setStatus( new RestResponseStatus( 404 ) )
+                            .setStatus( 404 )
                             .setData( "Product not found: " + id ) );
         }
     }

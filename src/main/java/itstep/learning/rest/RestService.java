@@ -27,9 +27,19 @@ public class RestService {
         restResponse.setData( data );
         sendRest( resp, restResponse );
     }
+
     public void sendRest(HttpServletResponse resp, RestResponse restResponse) throws IOException {
+        sendRest(resp, restResponse, 0);
+    }
+    public void sendRest(HttpServletResponse resp, RestResponse restResponse, int maxAge) throws IOException {
         resp.setContentType( "application/json" );
+        resp.setHeader( "Cache-Control", maxAge == 0 ? "no-cache" : "max-age=" + maxAge );
         Gson gson = new GsonBuilder().serializeNulls().create();
         resp.getWriter().print( gson.toJson( restResponse ) );
     }
 }
+/*
+Д.З. Встановити контроль кешування відповідей
+на всі запити до /shop/category
+на величину 10 хв.
+ */

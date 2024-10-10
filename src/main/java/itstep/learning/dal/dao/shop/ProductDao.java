@@ -40,6 +40,9 @@ public class ProductDao {
     }
 
     public Product getProductByIdOrSlug( String id ) {
+        if( id == null || id.isEmpty() ) {
+            return null;
+        }
         // id - або slug, або id. Перевіряємо шляхом перетворення до UUID
         String sql = "SELECT * FROM products WHERE ";
         try {

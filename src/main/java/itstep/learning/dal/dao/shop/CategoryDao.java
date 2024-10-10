@@ -3,6 +3,7 @@ package itstep.learning.dal.dao.shop;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import itstep.learning.dal.dto.shop.Category;
+import itstep.learning.dal.dto.shop.Product;
 import itstep.learning.models.form.ShopCategoryFormModel;
 
 import java.sql.*;
@@ -36,6 +37,33 @@ public class CategoryDao {
             logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
         }
         return categories ;
+    }
+
+    public Category getCategoryByIdOrSlug( String id ) {
+        if( id == null || id.isEmpty() ) {
+            return null;
+        }
+        String sql = "SELECT * FROM categories WHERE ";
+        try {
+            UUID.fromString( id );
+            // шукаємо як id
+            sql += "category_id = ?";
+        }
+        catch( IllegalArgumentException ignored ) {
+            // шукаємо як slug
+            sql += "category_slug = ?";
+        }
+        try( PreparedStatement prep = connection.prepareStatement( sql ) ) {
+            prep.setString( 1, id );
+            ResultSet rs = prep.executeQuery();
+            if( rs.next() ) {
+                return new Category( rs ) ;
+            }
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+        }
+        return null;
     }
 
     public boolean isSlugFree( String slug ) {
@@ -85,7 +113,8 @@ public class CategoryDao {
                         "image_url      VARCHAR(512)  NOT NULL," +
                         "description    TEXT              NULL," +
                         "delete_dt      DATETIME          NULL," +
-                        "category_slug  VARCHAR(64)       NULL" +
+                        "category_slug  VARCHAR(64)       NULL," +
+                        "UNIQUE (category_slug)" +
                 ") ENGINE = InnoDB, DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci";
 
         try( Statement stmt = connection.createStatement() ) {

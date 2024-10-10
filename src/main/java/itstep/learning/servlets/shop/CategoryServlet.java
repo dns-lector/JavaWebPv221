@@ -4,28 +4,25 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import itstep.learning.dal.dao.shop.CategoryDao;
 import itstep.learning.models.form.ShopCategoryFormModel;
-import itstep.learning.rest.RestService;
+import itstep.learning.rest.RestServlet;
 import itstep.learning.services.files.FileService;
 import itstep.learning.services.formparse.FormParseResult;
 import itstep.learning.services.formparse.FormParseService;
 import org.apache.commons.fileupload.FileItem;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @Singleton
-public class CategoryServlet extends HttpServlet {
-    private final RestService restService;
+public class CategoryServlet extends RestServlet {
     private final FormParseService formParseService;
     private final FileService fileService;
     private final CategoryDao categoryDao;
 
     @Inject
-    public CategoryServlet(RestService restService, FormParseService formParseService, FileService fileService, CategoryDao categoryDao) {
-        this.restService = restService;
+    public CategoryServlet(FormParseService formParseService, FileService fileService, CategoryDao categoryDao) {
         this.formParseService = formParseService;
         this.fileService = fileService;
         this.categoryDao = categoryDao;
@@ -33,7 +30,7 @@ public class CategoryServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        restService.sendRestResponse( resp, categoryDao.all() );
+        super.sendRest( 200, categoryDao.all() );
     }
 
     @Override
@@ -42,18 +39,18 @@ public class CategoryServlet extends HttpServlet {
 
         String slug = formParseResult.getFields().get( "category-slug" ) ;
         if( slug != null && ! categoryDao.isSlugFree( slug ) ) {
-            restService.sendRestError( resp, "Slug '" + slug + "' is not free" );
+            super.sendRest( 422, "Slug '" + slug + "' is not free" );
             return;
         }
 
         String name = formParseResult.getFields().get( "category-name" );
         if ( name == null || name.isEmpty() ) {
-            restService.sendRestError( resp, "Missing required field: 'category-name'" );
+            super.sendRest( 422, "Missing required field: 'category-name'" );
             return;
         }
         String description = formParseResult.getFields().get( "category-description" );
         if ( description == null || description.isEmpty() ) {
-            restService.sendRestError( resp, "Missing required field: 'category-description'" );
+            super.sendRest( 422, "Missing required field: 'category-description'" );
             return;
         }
         // зберігаємо файл-аватарку та одержуємо його збережене ім'я
@@ -63,11 +60,11 @@ public class CategoryServlet extends HttpServlet {
             uploadedName = fileService.upload( avatar );
         }
         else {
-            restService.sendRestError( resp, "Missing required file: 'category-img'" );
+            super.sendRest( 422, "Missing required file: 'category-img'" );
             return;
         }
 
-        restService.sendRestResponse( resp,
+        super.sendRest( 200,
                 categoryDao.add(
                         new ShopCategoryFormModel()
                                 .setSlug( slug )

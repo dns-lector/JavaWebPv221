@@ -19,7 +19,7 @@ body {
     display: block;
 }
 .shop-category picture, .shop-product picture {
-    background-color: lightgray;
+    /*background-color: lightgray;*/
     display: flex;
     align-items: center;
     justify-content: center;

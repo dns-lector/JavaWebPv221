@@ -2,12 +2,11 @@ package itstep.learning.servlets.shop;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import itstep.learning.dal.dao.shop.CategoryDao;
 import itstep.learning.dal.dao.shop.ProductDao;
+import itstep.learning.dal.dto.shop.Category;
 import itstep.learning.dal.dto.shop.Product;
-import itstep.learning.rest.RestMetaData;
-import itstep.learning.rest.RestResponse;
-import itstep.learning.rest.RestResponseStatus;
-import itstep.learning.rest.RestService;
+import itstep.learning.rest.*;
 import itstep.learning.services.files.FileService;
 import itstep.learning.services.formparse.FormParseResult;
 import itstep.learning.services.formparse.FormParseService;
@@ -21,25 +20,23 @@ import java.io.IOException;
 import java.util.*;
 
 @Singleton
-public class ProductServlet  extends HttpServlet {
-    private final RestService restService;
+public class ProductServlet  extends RestServlet {
     private final FormParseService formParseService;
     private final FileService fileService;
     private final ProductDao productDao;
-    private RestResponse restResponse;
+    private final CategoryDao categoryDao;
 
     @Inject
-    public ProductServlet(RestService restService, FormParseService formParseService, FileService fileService, ProductDao productDao) {
-        this.restService = restService;
+    public ProductServlet(FormParseService formParseService, FileService fileService, ProductDao productDao, CategoryDao categoryDao) {
         this.formParseService = formParseService;
         this.fileService = fileService;
         this.productDao = productDao;
+        this.categoryDao = categoryDao;
     }
 
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        restResponse = new RestResponse();
-        restResponse.setMeta(
+        super.restResponse = new RestResponse().setMeta(
                 new RestMetaData()
                         .setUri( "/shop/products" )
                         .setMethod( req.getMethod() )
@@ -57,7 +54,7 @@ public class ProductServlet  extends HttpServlet {
         if( productId != null ) {
             Map<String, Object> params = new HashMap<>();
             params.put("id", productId);
-            this.restResponse.getMeta().setParams(params);
+            super.restResponse.getMeta().setParams(params);
             getProductById( productId, req, resp );
             return;
         }
@@ -66,61 +63,51 @@ public class ProductServlet  extends HttpServlet {
         if( categoryId != null ) {
             Map<String, Object> params = new HashMap<>();
             params.put("categoryId", categoryId);
-            this.restResponse.getMeta().setParams(params);
+            super.restResponse.getMeta().setParams(params);
             getProductsByCategoryId(categoryId, req, resp);
             return;
         }
 
-        restService.sendRestError( resp, "Missing one of the required parameters: 'id' or 'categoryId'" );
+        super.sendRest( 400, "Missing one of the required parameters: 'id' or 'categoryId'" );
     }
 
     private void getProductsByCategoryId( String categoryId, HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        UUID categoryUuid;
-        try { categoryUuid = UUID.fromString( categoryId ); }
-        catch( IllegalArgumentException ignored ) {
-            restService.sendRestError( resp, "Invalid category id: " + categoryId );
+        Category category = categoryDao.getCategoryByIdOrSlug( categoryId );
+        if( category == null ) {
+            super.sendRest( 404, "Invalid category id: " + categoryId );
             return;
         }
-        restService.sendRest( resp,
-                restResponse.setData( productDao.allFromCategory( categoryUuid ) ) );
+        super.sendRest( 200, productDao.allFromCategory( category.getId() ) );
     }
 
     private void getProductById( String id, HttpServletRequest req, HttpServletResponse resp ) throws ServletException, IOException {
         Product product = productDao.getProductByIdOrSlug( id );
         if( product != null ) {
-            restService.sendRest( resp,
-                    restResponse
-                            .setStatus( 200 )
-                            .setData( product )
-            );
+            super.sendRest( 200, product ) ;
         }
         else {
-            restService.sendRest( resp,
-                    restResponse
-                            .setStatus( 404 )
-                            .setData( "Product not found: " + id ) );
+            super.sendRest( 404, "Product not found: " + id );
         }
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         if( req.getAttribute( "Claim.Sid" ) == null ) {
-            restService.sendRestError( resp, "Unauthorized. Token empty or rejected" );
+            super.sendRest( 401, "Unauthorized. Token empty or rejected" );
             return;
         }
         try {
             Product product = getModelFromRequest( req ) ;
             product = productDao.add( product );
             if( product == null ) {
-                restService.sendRestError( resp, "Server Error" );
+                super.sendRest( 500, "Server Error" );
             }
             else {
-                restService.sendRest( resp,
-                        restResponse.setData( product ) );
+                super.sendRest( 200, product );
             }
         }
         catch( Exception ex ) {
-            restService.sendRestError( resp, ex.getMessage() );
+            super.sendRest( 422, ex.getMessage() );
             // return;
         }
     }
@@ -139,16 +126,12 @@ public class ProductServlet  extends HttpServlet {
             product.setSlug( slug );
         }
 
-        try {
-            product.setCategoryId(
-                    UUID.fromString(
-                            formParseResult.getFields().get( "product-category-id" )
-                    )
-            );
-        }
-        catch( IllegalArgumentException ignored ) {
+        String categoryId = formParseResult.getFields().get( "product-category-id" );
+        Category category = categoryDao.getCategoryByIdOrSlug( categoryId );
+        if( category == null ) {
             throw new Exception( "Missing or empty or incorrect required field: 'product-category-id'" );
         }
+        product.setCategoryId( category.getId() );
 
         try {
             product.setPrice(

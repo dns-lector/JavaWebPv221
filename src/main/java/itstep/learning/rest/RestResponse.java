@@ -31,8 +31,9 @@ public class RestResponse {
         return meta;
     }
 
-    public void setMeta(RestMetaData meta) {
+    public RestResponse setMeta(RestMetaData meta) {
         this.meta = meta;
+        return this;
     }
 }
 

@@ -3,9 +3,8 @@ package itstep.learning.dal.dao.shop;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -20,15 +19,76 @@ public class CartDao {
         this.logger = logger;
     }
 
+    public boolean add( UUID userId, UUID productId, int cnt ) {
+        UUID cartId = null;
+        // 1. Спочатку шукаємо, чи є активний кошик користувача
+        String sql = "SELECT c.cart_id FROM carts c WHERE c.user_id = ? AND c.close_dt IS NULL";
+        try ( PreparedStatement prep = connection.prepareStatement( sql ) ) {
+            prep.setString( 1, userId.toString() );
+            ResultSet rs = prep.executeQuery();
+            if( rs.next() ) {  // є активний кошик
+                cartId = UUID.fromString( rs.getString(1) );
+            }
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+            return false;
+        }
+        if( cartId == null ) {   // немає активного кошику - його треба створити
+            cartId = UUID.randomUUID();
+            sql = "INSERT INTO carts (cart_id, user_id) VALUES (?, ?)";
+            try( PreparedStatement prep = connection.prepareStatement( sql ) ) {
+                prep.setString( 1, cartId.toString() );
+                prep.setString( 2, userId.toString() );
+                prep.executeUpdate();
+            }
+            catch( SQLException ex ) {
+                logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+                return false;
+            }
+        }
+        // cartId - посилається на активний кошик (або раніше створений, або новий)
+        // 2. Перевіряємо чи є в кошику даний товар. Якщо є - збільшуємо кількість, якщо ні - додаємо
+        int count;
+        sql = "SELECT COUNT(*) FROM cart_items c WHERE c.cart_id = ? AND c.product_id = ?";
+        try( PreparedStatement prep = connection.prepareStatement( sql ) ) {
+            prep.setString( 1, cartId.toString() );
+            prep.setString( 2, productId.toString() );
+            ResultSet rs = prep.executeQuery();
+            rs.next();
+            count = rs.getInt(1);
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+            return false;
+        }
+        if( count == 0 ) {  // немає товару в кошику
+            sql = "INSERT INTO cart_items (cnt, cart_id, product_id) VALUES (?, ?, ?)";
+        }
+        else {   // є товар в кошику
+            sql = "UPDATE cart_items SET cnt = cnt + ? WHERE cart_id = ? AND product_id = ?";
+        }
+        try( PreparedStatement prep = connection.prepareStatement( sql ) ) {
+            prep.setInt( 1, cnt );
+            prep.setString( 2, cartId.toString() );
+            prep.setString( 3, productId.toString() );
+            prep.executeUpdate();
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+            return false;
+        }
+        return true;
+    }
+
     public boolean installTables() {
-        String sql =
-                "CREATE TABLE IF NOT EXISTS carts (" +
-                        "cart_id     CHAR(36)  PRIMARY KEY  DEFAULT( UUID() )," +
-                        "user_id     CHAR(36)  NOT NULL," +
-                        "open_dt     DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP," +
-                        "close_dt    DATETIME      NULL," +
-                        "is_canceled TINYINT   NOT NULL DEFAULT 0" +
-                        ") ENGINE = InnoDB, DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci";
+        String sql = "CREATE TABLE IF NOT EXISTS carts (" +
+                "cart_id     CHAR(36)  PRIMARY KEY  DEFAULT( UUID() )," +
+                "user_id     CHAR(36)  NOT NULL," +
+                "open_dt     DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP," +
+                "close_dt    DATETIME      NULL," +
+                "is_canceled TINYINT   NOT NULL DEFAULT 0" +
+            ") ENGINE = InnoDB, DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci";
 
         try( Statement stmt = connection.createStatement() ) {
             stmt.executeUpdate( sql );
@@ -38,13 +98,12 @@ public class CartDao {
             return false;
         }
 
-        sql =
-                "CREATE TABLE IF NOT EXISTS cart_items (" +
-                        "cart_id     CHAR(36)      NOT NULL," +
-                        "product_id  CHAR(36)      NOT NULL," +
-                        "cnt         INT UNSIGNED  NOT NULL DEFAULT 1," +
-                        "PRIMARY KEY(cart_id, product_id)" +
-                        ") ENGINE = InnoDB, DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci";
+        sql = "CREATE TABLE IF NOT EXISTS cart_items (" +
+                "cart_id     CHAR(36)  NOT NULL," +
+                "product_id  CHAR(36)  NOT NULL," +
+                "cnt         INT       NOT NULL DEFAULT 1," +
+                "PRIMARY KEY(cart_id, product_id)" +
+            ") ENGINE = InnoDB, DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci";
 
         try( Statement stmt = connection.createStatement() ) {
             stmt.executeUpdate( sql );
@@ -64,4 +123,7 @@ public class CartDao {
 |open_dt
 |is_canceled
 
+Д.З. Забезпечити передачу кількості товарів, що додаються до кошику
+На бекенді перевіряти надходження параметру, за відсутності приймати за 1,
+за наявності перевіряти на число, не ноль
  */

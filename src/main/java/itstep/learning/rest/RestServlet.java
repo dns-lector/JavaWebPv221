@@ -10,7 +10,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 public class RestServlet extends HttpServlet {
-    private final static Gson gson = new GsonBuilder().serializeNulls().create();
+    protected final static Gson gson = new GsonBuilder().serializeNulls().create();
 
     protected RestResponse restResponse;
     private HttpServletResponse resp;

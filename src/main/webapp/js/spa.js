@@ -6,6 +6,16 @@ function request(url, params) {
     if( url.startsWith( '/' ) ) {
         url = env.apiHost + url;
     }
+    // if( typeof params.headers == "undefined" ) {
+    //     params = {
+    //         ...params,
+    //         headers: {
+    //             Authorization: 'Bearer ' +
+    //         }
+    //     }
+    // } else if( typeof params.headers.Authorization == "undefined" ) {
+    //
+    // }
     return new Promise((resolve, reject) => {
         fetch( url, params )
             .then(r => {
@@ -228,6 +238,7 @@ function Category({id}) {
         request("/shop/cart", {
             method: 'POST',
             headers: {
+                Authorization: 'Bearer ' + state.auth.token.tokenId,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({

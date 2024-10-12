@@ -221,6 +221,22 @@ function Category({id}) {
                 }
             });
     });
+    const addCart = React.useCallback( (id) => {
+        console.log( id );
+        const userId = state.auth.token.userId;
+        // TODO: check presence
+        request("/shop/cart", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                userId,
+                productId: id
+            })
+        }).then(console.log)
+            .catch(console.log);
+    });
     return <div>
         {products && <div>
             Category: {id}<br/>
@@ -228,12 +244,25 @@ function Category({id}) {
             <br/>
             {products.map(p => <div key={p.id}
                                     className="shop-product"
-                                    onClick={() => dispatch({type: 'navigate', payload: 'product/' + (p.slug || p.id)})}>
+                                    onClick={() => dispatch({
+                                        type: 'navigate',
+                                        payload: 'product/' + (p.slug || p.id)
+                                    })}>
                 <b>{p.name}</b>
                 <picture>
                     <img src={"file/" + p.imageUrl} alt="prod"/>
                 </picture>
-                <p><strong>{p.price}</strong> <small>{p.description}</small></p>
+                <div className="row">
+                    <div className="col s9">
+                        <strong>{p.price} грн</strong>&emsp;
+                        <small>{p.description}</small>
+                    </div>
+                    <div className="col s3">
+                        <a className="btn-floating cart-fab waves-effect waves-light red"
+                            onClick={(e) => {e.stopPropagation(); addCart(p.id)}}><i
+                            className="material-icons">shopping_bag</i></a>
+                    </div>
+                </div>
             </div>)}
             <br/>
             {state.auth.token &&

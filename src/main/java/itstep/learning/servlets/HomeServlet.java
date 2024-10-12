@@ -5,6 +5,7 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import itstep.learning.dal.dao.TokenDao;
 import itstep.learning.dal.dao.UserDao;
+import itstep.learning.dal.dao.shop.CartDao;
 import itstep.learning.dal.dao.shop.CategoryDao;
 import itstep.learning.dal.dao.shop.ProductDao;
 import itstep.learning.services.hash.HashService;
@@ -22,13 +23,15 @@ public class HomeServlet extends HttpServlet {
     private final TokenDao tokenDao;
     private final CategoryDao categoryDao;
     private final ProductDao productDao;
+    private final CartDao cartDao;
 
     @Inject
-    public HomeServlet(UserDao userDao, TokenDao tokenDao, CategoryDao categoryDao, ProductDao productDao) {
+    public HomeServlet(UserDao userDao, TokenDao tokenDao, CategoryDao categoryDao, ProductDao productDao, CartDao cartDao) {
         this.userDao = userDao;
         this.tokenDao = tokenDao;
         this.categoryDao = categoryDao;
         this.productDao = productDao;
+        this.cartDao = cartDao;
     }
 
     @Override
@@ -37,6 +40,7 @@ public class HomeServlet extends HttpServlet {
                 userDao.installTables() &&
                 tokenDao.installTables() &&
                 productDao.installTables() &&
+                cartDao.installTables() &&
                 categoryDao.installTables()
                         ? "Tables OK" : "Tables Fail" );
         // ~ return View()

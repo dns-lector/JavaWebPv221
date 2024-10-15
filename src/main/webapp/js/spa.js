@@ -41,8 +41,9 @@ const initialState = {
     },
     page: "home",
     shop: {
-        categories: [ ]
-    }
+        categories: []
+    },
+    cart: []
 };
 
 function reducer(state, action) {
@@ -54,6 +55,10 @@ function reducer(state, action) {
                     ...state.auth,
                     token: action.payload
                 }
+            };
+        case 'cart' :
+            return { ...state,
+                cart: action.payload
             };
         case 'navigate' :
             // console.log("navigate " + action.payload);
@@ -121,7 +126,7 @@ function Spa() {
         });
 
     });
-    const checkToken = React.useCallback( () => {
+    const checkToken = React.useCallback( (forceAuth) => {
         let token = window.sessionStorage.getItem( "token221" );
         // console.log( token, !!token, isAuth );
         if(token) {
@@ -130,7 +135,7 @@ function Spa() {
                 exitClick();
             }
             else {
-                if(!isAuth) {
+                if( forceAuth ) {
                     setAuth(true);
                     dispatch({ type: 'auth', payload: token });
                 }
@@ -147,11 +152,28 @@ function Spa() {
             dispatch( { type: 'navigate', payload: hash.substring(1) } );
         }
     } );
+    const loadCart = React.useCallback( () => {
+        request( "/shop/cart", {
+            headers: {
+                'Authorization': 'Bearer ' + state.auth.token.tokenId
+            },
+        })
+            .then( data => dispatch({type: 'cart', payload: data}) )
+            .catch( console.error );
+    } ) ;
+    React.useEffect(() => {
+        if(state.auth.token != null) {
+            loadCart();
+        }
+        else {
+            dispatch({type: 'cart', payload: []})
+        }
+    }, [state.auth]);
     React.useEffect(() => {
         hashChanged();
-        checkToken();
+        checkToken(true);
         window.addEventListener('hashchange', hashChanged);
-        const interval = setInterval(checkToken, 1000);
+        const interval = setInterval(() => checkToken(false), 1000);
 
         if (state.shop.categories.length === 0) {
             fetch("shop/category")
@@ -171,7 +193,7 @@ function Spa() {
         dispatch( { type: 'navigate', payload: route } );
     });
 
-    return <StateContext.Provider value={ {state, dispatch} }>
+    return <StateContext.Provider value={ {state, dispatch, loadCart} }>
         <h1>SPA</h1>
         { !isAuth &&
             <div>
@@ -185,10 +207,12 @@ function Spa() {
                 <button onClick={resourceClick} className="btn light-blue">Ресурс</button>
                 <button onClick={exitClick} className="btn indigo lighten-4">Вихід</button>
                 <p>{resource}</p>
-                <b onClick={() => navigate('home')}>Home</b>
-                <b onClick={() => navigate('shop')}>Shop</b>
+                <b onClick={() => navigate('home')}>Home</b>&emsp;
+                <b onClick={() => navigate('shop')}>Shop</b>&emsp;
+                <b onClick={() => navigate('cart')}>Cart({state.cart.reduce( (cnt,c) => cnt + c.quantity, 0 )})</b>&emsp;
                 { state.page === 'home' && <Home /> }
                 { state.page === 'shop' && <Shop /> }
+                { state.page === 'cart' && <Cart /> }
                 { state.page.startsWith('category/') && <Category id={state.page.substring(9)} /> }
                 { state.page.startsWith('product/') && <Product id={state.page.substring(8)} /> }
             </div>
@@ -197,7 +221,7 @@ function Spa() {
 }
 
 function Category({id}) {
-    const {state, dispatch} = React.useContext(StateContext);
+    const {state, dispatch, loadCart} = React.useContext(StateContext);
     const [products, setProducts] = React.useState([]);
     const loadProducts = React.useCallback( () => {
         request(`/shop/product?categoryId=${id}`)
@@ -245,7 +269,7 @@ function Category({id}) {
                 userId,
                 productId: id
             })
-        }).then(console.log)
+        }).then(() => loadCart())
             .catch(console.log);
     });
     return <div>
@@ -371,14 +395,39 @@ function Shop() {
     </React.Fragment>;
 }
 
+function Cart() {
+    const {state, loadCart} = React.useContext(StateContext);
+    const changeQuantity = React.useCallback( (cartItem, action) => {
+        switch (action) {
+            case 'inc': console.log(cartItem, action); loadCart(); break;
+            case 'dec': console.log(cartItem, action); loadCart(); break;
+            case 'del': console.log(cartItem, action); loadCart(); break;
+        }
+    });
+    return <div>
+        <h1>Кошик</h1>
+        {state.cart.map(c => <div key={c.productId}>
+            <img src={"file/" + c.product.imageUrl} alt="prod" width="55"/>
+            {c.product.name} {c.product.price}
+            <span>
+                <button onClick={() => changeQuantity(c, 'dec')}>-</button>
+                {c.quantity}
+                <button onClick={() => changeQuantity(c, 'inc')}>+</button>
+                &emsp;
+                <button onClick={() => changeQuantity(c, 'del')}>x</button>
+            </span>
+        </div>)}
+    </div>
+}
 
 ReactDOM
     .createRoot(document.getElementById("spa-container"))
     .render(<Spa />);
 /*
-Д.З. Додати до компонента CategoriesList параметр
-який відповідатиме за відображення:
-<CategoriesList mode="table" /> - як на головній сторінці - "таблицею": великими блоками
-<CategoriesList mode="ribbon" /> - "стрічкою" - для додаткового відображення на
- інших сторінках
+Д.З. Зробити дизайн сторінки "Кошик"
+- табличне представлення даних (або таблицею, або однаковими блоками)
+- додати загальну вартість позицію (ціна х кількість)
+- загальна кількість товарів та загальна сума під таблицею (за умови,
+   що є наповнення, інакше - виводити "кошик порожній")
+- на загальному віджеті окрім кількості товарів у кошику виводити його вартість
  */

@@ -2,8 +2,11 @@ package itstep.learning.dal.dao.shop;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
+import itstep.learning.dal.dto.shop.CartItem;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,6 +20,32 @@ public class CartDao {
     public CartDao( Connection connection, Logger logger ) {
         this.connection = connection;
         this.logger = logger;
+    }
+
+    public List<CartItem> getCart( String userId ) {
+        UUID uuid;
+        try { uuid = UUID.fromString( userId ); }
+        catch( IllegalArgumentException ignored ) { return null; }
+        String sql = "SELECT * " +
+                "FROM carts c " +
+                "    JOIN cart_items ci ON c.cart_id = ci.cart_id " +
+                "    JOIN products p ON ci.product_id = p.product_id " +
+                "WHERE c.user_id = ? " +
+                "    AND c.close_dt IS NULL " +
+                "    AND c.is_canceled = 0";
+        try( PreparedStatement prep = connection.prepareStatement( sql ) ) {
+            prep.setString( 1, uuid.toString() );
+            ResultSet rs = prep.executeQuery();
+            List<CartItem> cartItems = new ArrayList<>();
+            while( rs.next() ) {
+                cartItems.add( new CartItem( rs ) );
+            }
+            return cartItems;
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+        }
+        return null;
     }
 
     public boolean add( UUID userId, UUID productId, int cnt ) {

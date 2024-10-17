@@ -22,6 +22,54 @@ public class CartDao {
         this.logger = logger;
     }
 
+    public boolean update( UUID cartId, UUID productId, int delta ) throws Exception {
+        if( cartId == null || productId == null || delta == 0 ) {
+            return false;
+        }
+        String sql = "SELECT cnt FROM cart_items WHERE cart_id = ? AND product_id = ?";
+        int cnt;
+        try( PreparedStatement prep = connection.prepareStatement(sql) ) {
+            prep.setString( 1, cartId.toString() );
+            prep.setString( 2, productId.toString() );
+            ResultSet rs = prep.executeQuery();
+            if( rs.next() ) {
+                cnt = rs.getInt( 1 );
+            }
+            else {
+                return false;
+            }
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+            throw new Exception();
+        }
+        cnt += delta;
+        if( cnt < 0 ) return false;
+        if( cnt == 0 ) {   // видалення
+            sql = "DELETE FROM cart_items WHERE cart_id = ? AND product_id = ?";
+        }
+        else {   // оновлення
+            sql = "UPDATE cart_items SET cnt = ? WHERE cart_id = ? AND product_id = ?";
+        }
+        try( PreparedStatement prep = connection.prepareStatement( sql ) ) {
+            if( cnt == 0 ) {
+                prep.setString( 1, cartId.toString() );
+                prep.setString( 2, productId.toString() );
+            }
+            else {
+                prep.setInt( 1, cnt );
+                prep.setString( 2, cartId.toString() );
+                prep.setString( 3, productId.toString() );
+            }
+            prep.executeUpdate();
+            return true;
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+            throw new Exception();
+        }
+    }
+
     public List<CartItem> getCart( String userId ) {
         UUID uuid;
         try { uuid = UUID.fromString( userId ); }
@@ -108,6 +156,20 @@ public class CartDao {
             return false;
         }
         return true;
+    }
+
+    public boolean close( UUID cartId, boolean isCanceled ) {
+        String sql = "UPDATE carts SET close_dt = CURRENT_TIMESTAMP, is_canceled = ? WHERE cart_id = ?";
+        try( PreparedStatement prep = connection.prepareStatement(sql) ) {
+            prep.setInt( 1, isCanceled ? 1 : 0 );
+            prep.setString( 2, cartId.toString() );
+            prep.executeUpdate();
+            return true;
+        }
+        catch( SQLException ex ) {
+            logger.log( Level.WARNING, ex.getMessage() + " -- " + sql, ex );
+            return false;
+        }
     }
 
     public boolean installTables() {

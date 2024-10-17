@@ -399,9 +399,41 @@ function Cart() {
     const {state, loadCart} = React.useContext(StateContext);
     const changeQuantity = React.useCallback( (cartItem, action) => {
         switch (action) {
-            case 'inc': console.log(cartItem, action); loadCart(); break;
-            case 'dec': console.log(cartItem, action); loadCart(); break;
-            case 'del': console.log(cartItem, action); loadCart(); break;
+            case 'inc': updateCart(cartItem, 1);  break;
+            case 'dec': updateCart(cartItem, -1);  break;
+            case 'del': updateCart(cartItem, -cartItem.quantity);  break;
+        }
+    });
+    const updateCart = React.useCallback( (cartItem, delta) => {
+        if( Number(cartItem.quantity) + Number(delta) === 0
+        && ! confirm( `Видалити з кошику '${cartItem.product.name}'?`) ) {
+            return;
+        }
+        request("/shop/cart", {
+            method: 'PUT',
+            headers: {
+                Authorization: 'Bearer ' + state.auth.token.tokenId,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                cartId: cartItem.cartId,
+                productId: cartItem.productId,
+                delta: delta
+            })
+        }).then(() => loadCart())
+            .catch(console.log);
+    });
+    const buyClick = React.useCallback( () => {
+        if( confirm( `Підтверджуєте покупку на ${
+            state.cart.reduce((prev,c)=>prev+c.quantity * c.product.price, 0)} грн?`)) {
+            request("/shop/cart?cart-id=" + state.cart[0].cartId, {
+                method: 'PATCH',
+                headers: {
+                    Authorization: 'Bearer ' + state.auth.token.tokenId,
+                    'Content-Type': 'application/json'
+                }
+            }).then(() => loadCart())
+                .catch(console.log);
         }
     });
     return <div>
@@ -417,6 +449,8 @@ function Cart() {
                 <button onClick={() => changeQuantity(c, 'del')}>x</button>
             </span>
         </div>)}
+        <b>Разом: {state.cart.reduce((prev,c)=>prev+c.quantity * c.product.price, 0)}</b>
+        <button onClick={buyClick}>Придбати</button>
     </div>
 }
 

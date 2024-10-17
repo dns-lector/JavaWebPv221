@@ -13,7 +13,7 @@ public class RestServlet extends HttpServlet {
     protected final static Gson gson = new GsonBuilder().serializeNulls().create();
 
     protected RestResponse restResponse;
-    private HttpServletResponse resp;
+    protected HttpServletResponse resp;
 
     @Override
     protected void service(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -40,9 +40,6 @@ public class RestServlet extends HttpServlet {
     }
 }
 /*
-Д.З. Реалізувати передачу maxAge (Cache-Control)
-- для категорій - 1 день
-- для товарів - 1 годину
-- для токенів - за тривалістю токену
-** значення maxAge для різних АРІ розмістити у конфігурації (.ini файлі)
+Д.З. Реалізувати скасування кошику - кнопку, яка видаляє
+кошик (всі позиції) без оформлення оплати
  */

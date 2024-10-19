@@ -60,8 +60,14 @@ public class CartServlet extends RestServlet {
         // Перевіряємо токен (за результатом фільтру)
         String userId = (String) req.getAttribute( "Claim.Sid" );
         if( userId == null ) {
-            super.sendRest( 401, "Auth token required" );
-            return;
+            String tmpId = (String) req.getAttribute( "Claim.TmpId" );
+            if( tmpId != null ) {   // кошик у неавторизованому режимі
+                userId = tmpId;
+            }
+            else {
+                super.sendRest( 401, "Auth token required" );
+                return;
+            }
         }
         JsonObject json;
         try { json = parseBodyAsJsonObject(req); }
@@ -105,8 +111,14 @@ public class CartServlet extends RestServlet {
         // Перевіряємо токен (за результатом фільтру)
         String userId = (String) req.getAttribute( "Claim.Sid" );
         if( userId == null ) {
-            super.sendRest( 401, "Auth token required" );
-            return;
+            String tmpId = (String) req.getAttribute( "Claim.TmpId" );
+            if( tmpId != null ) {   // кошик у неавторизованому режимі
+                userId = tmpId;
+            }
+            else {
+                super.sendRest(401, "Auth token required");
+                return;
+            }
         }
         Map<String, Object> params = new HashMap<>();
         params.put( "userId", userId );

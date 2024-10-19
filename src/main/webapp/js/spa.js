@@ -1,43 +1,19 @@
-﻿const env = {
+﻿function uuidv4() {
+    return "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+        (+c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> +c / 4).toString(16)
+    );
+}
+
+const env = {
     apiHost: "http://localhost:8080/JavaWebPv221"
 };
 
-function request(url, params) {
-    if( url.startsWith( '/' ) ) {
-        url = env.apiHost + url;
-    }
-    // if( typeof params.headers == "undefined" ) {
-    //     params = {
-    //         ...params,
-    //         headers: {
-    //             Authorization: 'Bearer ' +
-    //         }
-    //     }
-    // } else if( typeof params.headers.Authorization == "undefined" ) {
-    //
-    // }
-    return new Promise((resolve, reject) => {
-        fetch( url, params )
-            .then(r => {
-                // перевірити на Content-Type (чи це json),
-                // а також на загальну помилку r.ok
-                return r.json();
-            })
-            .then(j => {
-                // перевірити на наявність j.status та j.data
-                if( j.status.isSuccessful ) {
-                    resolve( j.data );
-                }
-                else {
-                    reject( j.data );
-                }
-            })
-    });
-}
+const StateContext = React.createContext(null);
 
 const initialState = {
     auth: {
-        token: null
+        token: null,
+        tmpId: null
     },
     page: "home",
     shop: {
@@ -50,10 +26,20 @@ function reducer(state, action) {
     // console.log(action);
     switch( action.type ) {
         case 'auth' :
+            window.sessionStorage.setItem( "token221", JSON.stringify( action.payload ) );
+            window.localStorage.removeItem( "tmpId221" );
             return { ...state,
                 auth: {
                     ...state.auth,
-                    token: action.payload
+                    token: action.payload,
+                    tmpId: null
+                }
+            };
+        case 'auth-tmp' :
+            return { ...state,
+                auth: {
+                    ...state.auth,
+                    tmpId: action.payload
                 }
             };
         case 'cart' :
@@ -77,38 +63,11 @@ function reducer(state, action) {
     }
 }
 
-const StateContext = React.createContext(null);
-
 function Spa() {
     const [state, dispatch] = React.useReducer( reducer, initialState );
-    const [login, setLogin] = React.useState("");
-    const [password, setPassword] = React.useState("");
-    const [error, setError] = React.useState(false);
-    const [isAuth, setAuth] = React.useState(false);
     const [resource, setResource] = React.useState("");
-    const loginChange = React.useCallback( (e) => setLogin( e.target.value ) );
-    const passwordChange = React.useCallback( (e) => setPassword( e.target.value ) );
-    const authClick = React.useCallback( () => {
-        const credentials = btoa( login + ":" + password );
-        fetch(`${env.apiHost}/auth`, {
-            method: 'GET',
-            headers: {
-                'Authorization': 'Basic ' + credentials
-            }
-        }).then(r => r.json()).then( j => {
-            if( j.status.isSuccessful ) {
-                window.sessionStorage.setItem( "token221", JSON.stringify( j.data ) );
-                setAuth(true);
-            }
-            else {
-                setError( j.data );
-            }
-        });
-        console.log(credentials);
-    } );
     const exitClick = React.useCallback( () => {
         window.sessionStorage.removeItem( "token221" );
-        setAuth(false);
     });
     const resourceClick = React.useCallback( () => {
         const token = window.sessionStorage.getItem( "token221" );
@@ -128,7 +87,6 @@ function Spa() {
     });
     const checkToken = React.useCallback( (forceAuth) => {
         let token = window.sessionStorage.getItem( "token221" );
-        // console.log( token, !!token, isAuth );
         if(token) {
             token = JSON.parse(token);
             if( new Date(token.exp) < new Date() ) {
@@ -136,13 +94,18 @@ function Spa() {
             }
             else {
                 if( forceAuth ) {
-                    setAuth(true);
                     dispatch({ type: 'auth', payload: token });
                 }
             }
         }
         else {
-            setAuth(false);
+            let tmpId = window.localStorage.getItem( "tmpId221" );
+            if( tmpId != null ) {
+                state.auth.tmpId = tmpId;
+                if( forceAuth ) {
+                    dispatch({type: "auth-tmp", payload: tmpId});
+                }
+            }
         }
     });
     const hashChanged = React.useCallback( () => {
@@ -152,17 +115,56 @@ function Spa() {
             dispatch( { type: 'navigate', payload: hash.substring(1) } );
         }
     } );
+    const request = React.useCallback( (url, params) => {
+        if( url.startsWith( '/' ) ) {
+            url = env.apiHost + url;
+        }
+        let bearer = null;
+        if( state.auth.token != null ) {
+            bearer = state.auth.token.tokenId;
+        }
+        else if( state.auth.tmpId != null ) {
+            bearer = state.auth.tmpId;
+        }
+
+        if( bearer != null ) {
+            if( typeof params == "undefined" ) {
+                params = {};
+            }
+            if( typeof params.headers == "undefined" ) {
+                params.headers = {
+                    Authorization: 'Bearer ' + bearer
+                };
+            }
+            else if( typeof params.headers.Authorization == "undefined" ) {
+                params.headers.Authorization = 'Bearer ' + bearer;
+            }
+        }
+        return new Promise((resolve, reject) => {
+            fetch( url, params )
+                .then(r => {
+                    // перевірити на Content-Type (чи це json),
+                    // а також на загальну помилку r.ok
+                    return r.json();
+                })
+                .then(j => {
+                    // перевірити на наявність j.status та j.data
+                    if( j.status.isSuccessful ) {
+                        resolve( j.data );
+                    }
+                    else {
+                        reject( j.data );
+                    }
+                })
+        });
+    } );
     const loadCart = React.useCallback( () => {
-        request( "/shop/cart", {
-            headers: {
-                'Authorization': 'Bearer ' + state.auth.token.tokenId
-            },
-        })
+        request( "/shop/cart" )
             .then( data => dispatch({type: 'cart', payload: data}) )
             .catch( console.error );
     } ) ;
     React.useEffect(() => {
-        if(state.auth.token != null) {
+        if(state.auth.token != null || state.auth.tmpId != null) {
             loadCart();
         }
         else {
@@ -172,6 +174,7 @@ function Spa() {
     React.useEffect(() => {
         hashChanged();
         checkToken(true);
+
         window.addEventListener('hashchange', hashChanged);
         const interval = setInterval(() => checkToken(false), 1000);
 
@@ -186,23 +189,14 @@ function Spa() {
             window.removeEventListener('hashchange', hashChanged);
         }
     }, []);
-
     const navigate = React.useCallback( (route) => {
         // console.log(route);
         // const action = { type: 'navigate', payload: route };
         dispatch( { type: 'navigate', payload: route } );
     });
 
-    return <StateContext.Provider value={ {state, dispatch, loadCart} }>
+    return <StateContext.Provider value={ {state, dispatch, request, loadCart} }>
         <h1>SPA</h1>
-        { !isAuth &&
-            <div>
-                <b>Логін</b><input onChange={loginChange} /><br/>
-                <b>Пароль</b><input type="password"  onChange={passwordChange} /><br/>
-                <button onClick={authClick}>Одержати токен</button>
-                {error && <b>{error}</b>}
-            </div>
-        }{ isAuth &&
             <div>
                 <button onClick={resourceClick} className="btn light-blue">Ресурс</button>
                 <button onClick={exitClick} className="btn indigo lighten-4">Вихід</button>
@@ -210,20 +204,64 @@ function Spa() {
                 <b onClick={() => navigate('home')}>Home</b>&emsp;
                 <b onClick={() => navigate('shop')}>Shop</b>&emsp;
                 <b onClick={() => navigate('cart')}>Cart({state.cart.reduce( (cnt,c) => cnt + c.quantity, 0 )})</b>&emsp;
+                { state.page === 'auth' && <AuthPage /> }
+                { state.page === 'cart' && <Cart /> }
                 { state.page === 'home' && <Home /> }
                 { state.page === 'shop' && <Shop /> }
-                { state.page === 'cart' && <Cart /> }
                 { state.page.startsWith('category/') && <Category id={state.page.substring(9)} /> }
                 { state.page.startsWith('product/') && <Product id={state.page.substring(8)} /> }
             </div>
-        }
     </StateContext.Provider>;
 }
 
+function AuthPage({backPage}) {
+    const {state, dispatch, loadCart, request} = React.useContext(StateContext);
+    const [login, setLogin] = React.useState("");
+    const [password, setPassword] = React.useState("");
+    const [error, setError] = React.useState(false);
+    const loginChange = React.useCallback( (e) => setLogin( e.target.value ) );
+    const passwordChange = React.useCallback( (e) => setPassword( e.target.value ) );
+    const authClick = React.useCallback( () => {
+        const credentials = btoa( login + ":" + password );
+        let endpoint = `/auth`;
+        if( state.auth.tmpId != null ) {
+            endpoint += '?tmp-id=' + state.auth.tmpId;
+            /*
+            Реалізувати перенесення кошику з тимчасового ідентифікатора tmpId
+            до авторизованого.
+            Встановити Android Studio
+            https://developer.android.com/studio
+            Запустити, слідуючи інструкціям завантажити SDK та емулятор
+            */
+        }
+        request( endpoint, {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Basic ' + credentials
+            }
+        })
+        .then(data => {
+            dispatch({type: 'auth', payload: data});
+            setAuth(true);
+            if( backPage ) {
+                dispatch({type: 'navigate', payload: backPage});
+            }
+        })
+        .catch(setError);
+    });
+    const [isAuth, setAuth] = React.useState(false);
+    return <div>
+        <b>Логін</b><input onChange={loginChange}/><br/>
+        <b>Пароль</b><input type="password" onChange={passwordChange}/><br/>
+        <button onClick={authClick}>Одержати токен</button>
+        {error && <b>{error}</b>}
+    </div>;
+}
+
 function Category({id}) {
-    const {state, dispatch, loadCart} = React.useContext(StateContext);
+    const {state, dispatch, loadCart, request} = React.useContext(StateContext);
     const [products, setProducts] = React.useState([]);
-    const loadProducts = React.useCallback( () => {
+    const loadProducts = React.useCallback(() => {
         request(`/shop/product?categoryId=${id}`)
             .then(setProducts)
             .catch(err => {
@@ -256,17 +294,26 @@ function Category({id}) {
             });
     });
     const addCart = React.useCallback( (id) => {
-        console.log( id );
-        const userId = state.auth.token.userId;
+        // console.log( id );
+        let userId;
+        if( state.auth.token == null ) {
+            if( state.auth.tmpId == null ) {
+                state.auth.tmpId = uuidv4();
+                window.localStorage.setItem( "tmpId221", state.auth.tmpId );
+            }
+            userId = state.auth.tmpId;
+        }
+        else {
+            userId = state.auth.token.userId;
+        }
         // TODO: check presence
         request("/shop/cart", {
             method: 'POST',
             headers: {
-                Authorization: 'Bearer ' + state.auth.token.tokenId,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                userId,
+                userId: userId,
                 productId: id
             })
         }).then(() => loadCart())
@@ -396,7 +443,7 @@ function Shop() {
 }
 
 function Cart() {
-    const {state, loadCart} = React.useContext(StateContext);
+    const {state, dispatch, loadCart, request} = React.useContext(StateContext);
     const changeQuantity = React.useCallback( (cartItem, action) => {
         switch (action) {
             case 'inc': updateCart(cartItem, 1);  break;
@@ -412,7 +459,6 @@ function Cart() {
         request("/shop/cart", {
             method: 'PUT',
             headers: {
-                Authorization: 'Bearer ' + state.auth.token.tokenId,
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
@@ -424,12 +470,20 @@ function Cart() {
             .catch(console.log);
     });
     const buyClick = React.useCallback( () => {
+        if( state.auth.token == null ) {
+            // кошик в неавторизованому режимі
+            if( confirm( "Ви купляєте в анонімному режимі. Історія " +
+                "покупок збережена не буде, персональні знижки не враховуються." +
+                "Бажаєте увійти до системи?" ) ) {
+                dispatch({type: 'navigate', payload: 'auth'});
+                return;
+            }
+        }
         if( confirm( `Підтверджуєте покупку на ${
             state.cart.reduce((prev,c)=>prev+c.quantity * c.product.price, 0)} грн?`)) {
             request("/shop/cart?cart-id=" + state.cart[0].cartId, {
                 method: 'PATCH',
                 headers: {
-                    Authorization: 'Bearer ' + state.auth.token.tokenId,
                     'Content-Type': 'application/json'
                 }
             }).then(() => loadCart())
